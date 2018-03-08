@@ -3,25 +3,30 @@ package com.zhijie.meditation.focus;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.AssetManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
 
 import com.choosemuse.libmuse.Muse;
-import com.choosemuse.libmuse.MuseFileWriter;
 import com.choosemuse.libmuse.MuseManagerAndroid;
 
-import org.w3c.dom.Text;
-
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.time.LocalDate;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
 import MuseConnection.MuseConnectionHelper;
 
+import static constants.Constants.SVM_MODEL;
 import static constants.Constants.USE_MUSE;
-
+import libsvm.*;
 
 public class ActivityStateChecker extends Activity implements View.OnClickListener {
 
@@ -61,6 +66,19 @@ public class ActivityStateChecker extends Activity implements View.OnClickListen
         } else {
 
         }
+
+        try{
+            AssetManager am = context.getApplicationContext().getAssets();
+            InputStreamReader ims = new InputStreamReader(am.open(SVM_MODEL));
+            BufferedReader reader = new BufferedReader(ims);
+
+            svm.svm_load_model(reader);
+
+        }catch (IOException e){
+            Log.d(TAG,"Exception: " + e);
+//            e.printStackTrace();
+        }
+
 
 
     }
