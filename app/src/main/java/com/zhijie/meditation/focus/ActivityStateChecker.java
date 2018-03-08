@@ -15,18 +15,17 @@ import com.choosemuse.libmuse.Muse;
 import com.choosemuse.libmuse.MuseManagerAndroid;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.time.LocalDate;
 import java.util.List;
 
-import MuseConnection.MuseConnectionHelper;
+import MuseControllers.MuseConnectionHelper;
+import libsvm.svm;
+import libsvm.svm_model;
 
 import static constants.Constants.SVM_MODEL;
 import static constants.Constants.USE_MUSE;
-import libsvm.*;
+
 
 public class ActivityStateChecker extends Activity implements View.OnClickListener {
 
@@ -67,19 +66,20 @@ public class ActivityStateChecker extends Activity implements View.OnClickListen
 
         }
 
-        try{
-            AssetManager am = context.getApplicationContext().getAssets();
-            InputStreamReader ims = new InputStreamReader(am.open(SVM_MODEL));
-            BufferedReader reader = new BufferedReader(ims);
+        svm_model svmModel = null;
 
-            svm.svm_load_model(reader);
+        try{
+            AssetManager am = getAssets();
+            BufferedReader br = new BufferedReader(new InputStreamReader(am.open(SVM_MODEL)));
+            svmModel = svm.svm_load_model(br);
+            Log.d(TAG, "kernel_type" + svmModel.nSV[2]);
 
         }catch (IOException e){
-            Log.d(TAG,"Exception: " + e);
-//            e.printStackTrace();
+            e.printStackTrace();
         }
 
 
+//        svm.svm_predict(svmModel, ,'b -1' );
 
     }
 

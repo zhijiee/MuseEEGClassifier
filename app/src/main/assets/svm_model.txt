@@ -1,5 +1,5 @@
-svm_type 0
-kernel_type 2
+svm_type c_svc
+kernel_type rbf
 nr_class 2
 degree 3
 total_sv 96
