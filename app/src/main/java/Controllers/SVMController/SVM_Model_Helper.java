@@ -1,4 +1,4 @@
-package SVMController;
+package Controllers.SVMController;
 
 /**
  * Created by zhijie on 8/3/18.

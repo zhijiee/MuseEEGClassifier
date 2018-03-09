@@ -49,6 +49,47 @@
         app:layout_constraintStart_toEndOf="@+id/eeg3"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <com.github.lzyzsd.circleprogress.CircleProgress
+        android:id="@+id/donut_progress"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:layout_marginBottom="32dp"
+        android:layout_marginEnd="32dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="32dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:donut_text=""
+        app:circle_unfinished_color="@android:color/holo_red_light"
+        app:circle_finished_color="@android:color/holo_blue_light"
+        app:circle_progress="50"/>
+
+
+    <TextView
+        android:id="@+id/tv_music_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:text="Current Music:"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/donut_progress" />
+
+    <TextView
+        android:id="@+id/tv_music_now_playing"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:layout_marginStart="8dp"
+        android:text="Music Name Placeholder!"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/tv_music_text"/>
+
     <TextView
         android:id="@+id/muse_text"
         android:layout_width="wrap_content"

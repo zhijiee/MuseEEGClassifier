@@ -13,13 +13,14 @@ import android.widget.TextView;
 
 import com.choosemuse.libmuse.Muse;
 import com.choosemuse.libmuse.MuseManagerAndroid;
+import com.google.gson.Gson;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.List;
 
-import MuseControllers.MuseConnectionHelper;
+import Controllers.MuseControllers.MuseConnectionHelper;
 import libsvm.svm;
 import libsvm.svm_model;
 
@@ -27,9 +28,9 @@ import static constants.Constants.SVM_MODEL;
 import static constants.Constants.USE_MUSE;
 
 
-public class ActivityStateChecker extends Activity implements View.OnClickListener {
+public class ActivityRealTimeEEGClassifier extends Activity implements View.OnClickListener {
 
-    private final String TAG = "ActivityStateChecker";
+    private final String TAG = "RealTimeEEGClassifier";
     private final Handler handler = new Handler();
 
     private MuseConnectionHelper museConnectionHelper;
@@ -72,19 +73,21 @@ public class ActivityStateChecker extends Activity implements View.OnClickListen
             AssetManager am = getAssets();
             BufferedReader br = new BufferedReader(new InputStreamReader(am.open(SVM_MODEL)));
             svmModel = svm.svm_load_model(br);
-            Log.d(TAG, "kernel_type" + svmModel.nSV[2]);
+//            Log.d(TAG, "kernel_type: " + svmModel.nSV);
 
         }catch (IOException e){
             e.printStackTrace();
         }
 
-
+        Gson gson = new Gson();
+        gson.toJson(svmModel);
+//        Log.d(TAG, gson.toJson(svmModel));
 //        svm.svm_predict(svmModel, ,'b -1' );
 
     }
 
     private void initUI() {
-        setContentView(R.layout.eeg_state_checker);
+        setContentView(R.layout.activity_eeg_realtime_classifier);
 
         TextView eeg1 = findViewById(R.id.eeg1);
         TextView eeg2 = findViewById(R.id.eeg2);

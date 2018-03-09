@@ -41,7 +41,7 @@ public class MainActivity extends Activity implements OnClickListener {
 //                Log.d(TAG, "Name:" + et_name.getText());
 
                 Intent myIntent = new Intent(MainActivity.this,
-                        ActivityStateChecker.class);
+                        ActivityRealTimeEEGClassifier.class);
 //                myIntent.putExtra("name", name);
                 startActivity(myIntent);
 
