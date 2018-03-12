@@ -6,14 +6,12 @@ import android.content.Intent;
 import android.content.res.AssetManager;
 import android.os.Bundle;
 import android.os.Handler;
-import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
 
 import com.choosemuse.libmuse.Muse;
 import com.choosemuse.libmuse.MuseManagerAndroid;
-import com.google.gson.Gson;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -24,8 +22,8 @@ import Controllers.MuseControllers.MuseConnectionHelper;
 import libsvm.svm;
 import libsvm.svm_model;
 
-import static constants.Constants.SVM_MODEL;
-import static constants.Constants.USE_MUSE;
+import static constants.AppConstants.SVM_MODEL;
+import static constants.AppConstants.USE_MUSE;
 
 
 public class ActivityRealTimeEEGClassifier extends Activity implements View.OnClickListener {
@@ -68,19 +66,16 @@ public class ActivityRealTimeEEGClassifier extends Activity implements View.OnCl
         }
 
         svm_model svmModel = null;
-
+//        svm.svm_train()
         try{
             AssetManager am = getAssets();
             BufferedReader br = new BufferedReader(new InputStreamReader(am.open(SVM_MODEL)));
             svmModel = svm.svm_load_model(br);
-//            Log.d(TAG, "kernel_type: " + svmModel.nSV);
 
         }catch (IOException e){
             e.printStackTrace();
         }
 
-        Gson gson = new Gson();
-        gson.toJson(svmModel);
 //        Log.d(TAG, gson.toJson(svmModel));
 //        svm.svm_predict(svmModel, ,'b -1' );
 

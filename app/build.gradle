@@ -29,4 +29,5 @@ dependencies {
     compile 'com.android.support.constraint:constraint-layout:1.0.2'
     compile 'com.google.code.gson:gson:2.8.0'
     compile 'com.github.lzyzsd:circleprogress:1.2.1' //Circle Progress Library
+    compile group: 'uk.me.berndporr', name:'iirj', version: '1.0' //Butterworth filter
 }
