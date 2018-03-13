@@ -18,7 +18,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.List;
 
-import Controllers.MuseControllers.MuseConnectionHelper;
+import controllers.MuseControllers.MuseConnectionHelper;
 import libsvm.svm;
 import libsvm.svm_model;
 

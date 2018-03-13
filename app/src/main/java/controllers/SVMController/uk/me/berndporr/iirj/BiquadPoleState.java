@@ -18,7 +18,7 @@
  *  Copyright (c) 2016 by Bernd Porr
  */
 
-package Controllers.SVMController.uk.me.berndporr.iirj;
+package controllers.SVMController.uk.me.berndporr.iirj;
 
 
 import org.apache.commons.math3.complex.Complex;

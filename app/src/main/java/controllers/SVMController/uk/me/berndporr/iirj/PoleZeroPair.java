@@ -1,4 +1,4 @@
-package Controllers.SVMController.uk.me.berndporr.iirj;
+package controllers.SVMController.uk.me.berndporr.iirj;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
