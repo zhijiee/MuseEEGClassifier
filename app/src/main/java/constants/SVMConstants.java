@@ -41,8 +41,8 @@ public final class SVMConstants {
     */
 
     public final static double[] BAND = {1, 4, 8, 12, 18, 30, 45}; //TODO theta is 3-8hz?
-    public final static double NUM_BAND = BAND.length-1;
-    public final static double NUM_START_BAND = 1; //start from theta band - removing delta band which is noisy
+    public final static int NUM_BAND = BAND.length-1;
+    public final static int N_START_BAND = 1; //start from theta band - removing delta band which is noisy
 
 
 }

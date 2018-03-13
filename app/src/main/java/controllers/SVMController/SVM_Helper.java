@@ -1,7 +1,6 @@
 package controllers.SVMController;
 
 
-import java.lang.reflect.Array;
 import java.util.Arrays;
 
 import controllers.SVMController.uk.me.berndporr.iirj.Butterworth;
@@ -95,7 +94,7 @@ public class SVM_Helper {
         return fOutEEGData;
     }
 
-    public static void extractFeatures(double[][] xm){
+    public void extractFeatures(double[][] xm){
         /*
         %==  Initialize parameters
         fs = para.fs;
@@ -115,12 +114,47 @@ public class SVM_Helper {
 
         double winSize = Math.floor(fs*fs); // window size = 2 * 256 = 512
         double winShift = Math.floor(winSize*(100-overLap/100)); //sample overlap 0.5 * 512 = 256
-        double numSeg = Math.floor( (xm.length - winSize) / winShift);
-        double numChannel = xm[0].length;
+        int numSeg = (int) Math.floor( (xm.length - winSize) / winShift);
+        int numChannel = xm[0].length;
 
-        double nband = NUM_BAND;
+        int nband = NUM_BAND;
+
+
+        double[][][] xm_filtered = new double[numSeg][nband*numChannel][nband]; //Create 3D array last one 6 for 6 different bands
+        Arrays.fill(xm_filtered, 0);
+
+        //bandpass filter them into different bands todo continue
+        xm_filtered = bandPassFilter(xm);
 
 
 
+
+    }
+
+    public double[][][] bandPassFilter(double[][] xm) {
+
+        int nband = NUM_BAND;
+        double[][][] xm_filtered = new double[xm.length][xm[0].length][nband];
+        Arrays.fill(xm_filtered, 0);
+
+        /*
+        for i= para.nstartband: nband
+            xm_filtered(:,:,i) = xm;
+            nSection = para.BPNumSec(i);
+            fCoe = para.BPCoe{i};
+            fGain = para.BPGain{i};
+            for j=1:nSection
+                B = fCoe(j,1:3);
+                A = fCoe(j,4:6);
+                xm_filtered(:,:,i) = fGain(j)*filter(B,A,xm_filtered(:,:,i));
+            end
+        end
+         */
+
+        for (int i = N_START_BAND; i<nband; i++) {
+
+
+        }
+        return xm_filtered;
     }
 }
