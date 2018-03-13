@@ -5,7 +5,21 @@ import java.util.Arrays;
 
 import controllers.SVMController.uk.me.berndporr.iirj.Butterworth;
 
-import static constants.SVMConstants.*;
+import static constants.SVMConstants.BPCoe;
+import static constants.SVMConstants.BPGain;
+import static constants.SVMConstants.BPNumSec;
+import static constants.SVMConstants.CENTER_FREQUENCY;
+import static constants.SVMConstants.F_ORDER;
+import static constants.SVMConstants.NUM_BAND;
+import static constants.SVMConstants.NUM_EEG_CH;
+import static constants.SVMConstants.N_START_BAND;
+import static constants.SVMConstants.SAMPLE_RATE;
+import static constants.SVMConstants.WIDTH_FREQUENCY;
+import static constants.SVMConstants.WINDOW_LENGTH;
+import static constants.SVMConstants.kCompMat;
+import static constants.SVMConstants.kCompMat2;
+import static constants.SVMConstants.nComp;
+import static constants.SVMConstants.overLap;
 
 public class SVM_Helper {
 
@@ -18,7 +32,7 @@ public class SVM_Helper {
         bw.bandPass(F_ORDER, SAMPLE_RATE, CENTER_FREQUENCY, WIDTH_FREQUENCY); //Setup bandpass filter.
     }
 
-    private double getMean(int start, int end, int col, double [][] fInEEGData){
+    private double getMean(int start, int end, int col, double[][] fInEEGData) {
 
         double sum=0;
         for (int i=start; i<end; i++){
@@ -28,12 +42,6 @@ public class SVM_Helper {
         return sum/(end-start);
     }
 
-    private double[][] getEEGOut(double[][] fInEEGData, double[][] fOutEEGData){
-
-
-
-        return fOutEEGData;
-    }
 
     /**
      * Artifact Removal
@@ -50,12 +58,13 @@ public class SVM_Helper {
             }
         }
 
+
         // Array of fInEEGData should be 512 x 4 todo better way to init the 2D square array?
         double[][] fRefData = new double[fInEEGData.length][NUM_EEG_CH];
-        Arrays.fill(fRefData, 0);
+//        Arrays.fill(fRefData, 0.0);
 
         double[][] fOutEEGData = new double[fInEEGData.length][NUM_EEG_CH];
-        Arrays.fill(fRefData, 0);
+//        Arrays.fill(fOutEEGData, 0.0);
 
         int dataLength = fInEEGData.length;
 
@@ -94,7 +103,7 @@ public class SVM_Helper {
         return fOutEEGData;
     }
 
-    public void extractFeatures(double[][] xm){
+    public double[][] extractFeatures(double[][] xm) {
         /*
         %==  Initialize parameters
         fs = para.fs;
@@ -112,23 +121,80 @@ public class SVM_Helper {
         double[] winTime;
         double[] winStart;
 
-        double winSize = Math.floor(fs*fs); // window size = 2 * 256 = 512
-        double winShift = Math.floor(winSize*(100-overLap/100)); //sample overlap 0.5 * 512 = 256
+        int winSize = (int) Math.floor(fs * fs); // window size = 2 * 256 = 512
+        int winShift = (int) Math.floor(winSize * (100 - overLap / 100)); //sample overlap 0.5 * 512 = 256
         int numSeg = (int) Math.floor( (xm.length - winSize) / winShift);
         int numChannel = xm[0].length;
 
         int nband = NUM_BAND;
 
-
-        double[][][] xm_filtered = new double[numSeg][nband*numChannel][nband]; //Create 3D array last one 6 for 6 different bands
+        double[][] xWinFeature = new double[numSeg][nband * numChannel];
+        double[][][] xm_filtered = new double[xm.length][xm[0].length][nband]; //Create 3D array last one 6 for 6 different bands
         Arrays.fill(xm_filtered, 0);
 
-        //bandpass filter them into different bands todo continue
-        xm_filtered = bandPassFilter(xm);
+        //bandpass filter them into different bands
+        xm_filtered = bandPassFilter(xm); //todo Stuck in band pass filter
+
+        for (int iSeg = 0; iSeg < numSeg; iSeg++) {
+            // xstart = (iSeg-1)*winShift +1;
+            // xend = (iSeg-1)*winShift + winSz;
+
+            int xStart = (iSeg) * winShift + 1;
+            int xEnd = (iSeg) * winShift + winSize;
 
 
+            double[][][] xWinFeature1 = new double[numSeg][numChannel][nband]; //segment, ch x 4, band x 6
+
+            /*
+                for iCh = 1: numChannel
+                    xwinFeature1(iSeg,iCh,:) = sum(xm_filtered(xstart:xend,iCh,:).^2);  %CTG: relative power
+                    xwinFeature1(iSeg,iCh,:) = xwinFeature1(iSeg,iCh,:)/sum(squeeze(xwinFeature1(iSeg,iCh,:)));  %CTG: relative power
+                end
+            */
+            for (int iCh = 1; iCh < numChannel; iCh++) {
+                for (int band = 0; band < nband; band++) {
+                    xWinFeature1[iSeg][iCh][band] = mySum(xm_filtered, xStart, xEnd, iCh, band); //CTG: relative power
+                }
+
+                //TODO I don't see how squeeze affects this. So i am doing normal division. Can use same loop as above
+                for (int band = 0; band < nband; band++) {
+                    xWinFeature1[iSeg][iCh][band] = mySqueeze(xWinFeature1, iSeg, iCh, band);
+                }
+
+            }
+
+            int iFeat = 0;
+            for (int j = 0; j < numChannel; j++) {
+                for (int m = 0; m < nband; m++) {
+                    xWinFeature[iSeg][iFeat] = xWinFeature1[iSeg][j][m];
+                    iFeat++;
+                }
+            }
+        }
+
+        return xWinFeature;
+
+    }
+
+    private double mySqueeze(double[][][] xWinFeature1, int iSeg, int iCh, int band) {
+        int sum = 0;
+
+        for (int i = 0; i < NUM_BAND; i++) {
+            sum += xWinFeature1[iSeg][iCh][i];
+        }
+
+        return xWinFeature1[iSeg][iCh][band] / sum;
+    }
+
+    private double mySum(double[][][] xm_filtered, int xStart, int xEnd, int iCh, int band) {
+
+        double sum = 0;
+        for (int i = xStart; i < xEnd; i++) {
+            sum += xm_filtered[i][iCh][band];
+        }
 
 
+        return Math.pow(sum, 2);
     }
 
     public double[][][] bandPassFilter(double[][] xm) {
@@ -151,10 +217,28 @@ public class SVM_Helper {
         end
          */
 
-        for (int i = N_START_BAND; i<nband; i++) {
+        for (int band = N_START_BAND; band < nband; band++) {
+            // xm_filtered(:,:,i) = xm;
+            for (int i = 0; i < xm_filtered.length; i++) {
+                for (int j = 0; j < xm_filtered[i].length; j++) {
+                    xm_filtered[i][j][band] = xm[i][j];
+                }
+            }
+
+            // nSection = para.BPNumSec(i);
+
+            int nSection = BPNumSec[band];
+            double[][] FCoe = BPCoe[band];
+            double[] FGain = BPGain[band];
+
+            for (int i = 0; i < nSection; i++) {
+                //TODO Require some help with separating into different bands
+            }
 
 
         }
+
+
         return xm_filtered;
     }
 }
