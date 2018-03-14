@@ -55,9 +55,11 @@ public class SVM_Helper {
         for (int i=0; i<fInEEGData.length;i++){
             for(int k=0; k<fInEEGData[i].length; k++){
                 fInEEGData[i][k] = bw.filter(fInEEGData[i][k]);
+                System.out.print(fInEEGData[i][k] + "\t");
             }
-        }
+            System.out.println();
 
+        }
 
         // Array of fInEEGData should be 512 x 4 todo better way to init the 2D square array?
         double[][] fRefData = new double[fInEEGData.length][NUM_EEG_CH];
