@@ -10,7 +10,8 @@ public final class SVMConstants {
     public final static double CENTER_FREQUENCY = Math.sqrt(FREQ_LOW * FREQ_HIGH);
     public final static double WIDTH_FREQUENCY = FREQ_HIGH - FREQ_LOW;
 
-
+    public final static double[] preFilterA = {1, -5.15782851817200, 11.5608198955593, -14.9658099132349, 12.4693538123194, -6.90189476483231, 2.44985418058679, -0.502508975737991, 0.0480142849697873};
+    public final static double[] preFilterB = {0.0302684886055911, 0, -0.121073954422364, 0, 0.181610931633547, 0, -0.121073954422364, 0, 0.0302684886055911};
     public final static int NUM_EEG_CH = 4;
     public final static int[] kCompMat = {22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 48, 52};
     public final static int[] kCompMat2 = {11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 26};
@@ -43,8 +44,6 @@ public final class SVMConstants {
     public final static double[] BAND = {1, 4, 8, 12, 18, 30, 45}; //TODO theta is 3-8hz?
     public final static int NUM_BAND = BAND.length - 1;
     public final static int N_START_BAND = 1; //start from theta band - removing delta band which is noisy
-
-    public static int[] BPNumSec = {7, 7, 7, 7, 7, 7};
     public static final double[][] BPCoe1 =
 
             {
@@ -56,7 +55,6 @@ public final class SVMConstants {
                     {1, -1.939574831982845, 1, 1, -1.8522189535287943, 0.86356064390918641},
                     {1, 0, -1, 1, -1.8808566006003127, 0.88312593358244484}
             };
-
     public static final double[] BPGain1 =
             {
                     0.75701130410533457,
@@ -67,7 +65,6 @@ public final class SVMConstants {
                     0.44613561218524111,
                     0.058437033208777578
             };
-
     public static final double[][] BPCoe2 =
 
             {
@@ -79,7 +76,6 @@ public final class SVMConstants {
                     {1, -1.8722035917039273, 1, 1, -1.8260726699095802, 0.86065030956083566},
                     {1, 0, -1, 1, -1.8331156793968122, 0.85094125551483446}
             };
-
     public static final double[] BPGain2 =
             {
                     0.75603116184194208,
@@ -90,7 +86,6 @@ public final class SVMConstants {
                     0.44256863950801417,
                     0.07452937224258277
             };
-
     public static final double[][] BPCoe3 =
 
             {
@@ -102,7 +97,6 @@ public final class SVMConstants {
                     {1, -1.8053531266809124, 1, 1, -1.8707163960165012, 0.90842482680662517},
                     {1, 0, -1, 1, -1.7933456449569654, 0.84652347611435252}
             };
-
     public static final double[] BPGain3 =
             {
                     0.75590093580401652,
@@ -113,7 +107,6 @@ public final class SVMConstants {
                     0.44211605294016998,
                     0.076738261942823766
             };
-
     public static final double[][] BPCoe4 =
 
             {
@@ -136,7 +129,6 @@ public final class SVMConstants {
                     0.11118154353883733
 
             };
-
     public static final double[][] BPCoe5 =
 
             {
@@ -159,7 +151,6 @@ public final class SVMConstants {
                     0.20054819364546525
 
             };
-
     public static final double[][] BPCoe6 =
 
             {
@@ -171,7 +162,6 @@ public final class SVMConstants {
                     {1, -0.068848047065401485, 1, 1, -0.75615386842277976, 0.61811896087399676},
                     {1, 0, -1, 1, -0.94488036424578736, 0.53410426488946972}
             };
-
     public static final double[] BPGain6 =
             {
                     0.75092381018165899,
@@ -182,8 +172,8 @@ public final class SVMConstants {
                     0.43673144372417028,
                     0.23294786755526517
             };
-
     public static final double[][][] BPCoe = {BPCoe1, BPCoe2, BPCoe3, BPCoe4, BPCoe5, BPCoe6};
     public static final double[][] BPGain = {BPGain1, BPGain2, BPGain3, BPGain4, BPGain5, BPGain6};
+    public static int[] BPNumSec = {7, 7, 7, 7, 7, 7};
 
 }

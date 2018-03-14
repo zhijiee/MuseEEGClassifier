@@ -20,6 +20,8 @@ import static constants.SVMConstants.kCompMat;
 import static constants.SVMConstants.kCompMat2;
 import static constants.SVMConstants.nComp;
 import static constants.SVMConstants.overLap;
+import static constants.SVMConstants.preFilterA;
+import static constants.SVMConstants.preFilterB;
 
 public class SVM_Helper {
 
@@ -29,7 +31,6 @@ public class SVM_Helper {
         // Setup ButterWorth
         // Calculate centerFrequency ==> https://electronics.stackexchange.com/questions/234752/why-is-center-frequency-of-a-bandpass-filter-is-given-by-the-geometric-average-o
         bw = new Butterworth();
-        bw.bandPass(F_ORDER, SAMPLE_RATE, CENTER_FREQUENCY, WIDTH_FREQUENCY); //Setup bandpass filter.
     }
 
     private double getMean(int start, int end, int col, double[][] fInEEGData) {
@@ -42,6 +43,39 @@ public class SVM_Helper {
         return sum/(end-start);
     }
 
+    public void filterIIR(double[] filt_b, double[] filt_a, double[][] data, int band) {
+        int Nback = filt_b.length;
+        double[] prev_y = new double[Nback];
+        double[] prev_x = new double[Nback];
+
+        //step through data points
+        for (int i = 0; i < data.length; i++) {
+            //shift the previous outputs
+            for (int j = Nback-1; j > 0; j--) {
+                prev_y[j] = prev_y[j-1];
+                prev_x[j] = prev_x[j-1];
+            }
+
+            //add in the new point
+            prev_x[0] = data[i][band];
+
+            //compute the new data point
+            double out = 0;
+            for (int j = 0; j < Nback; j++) {
+                out += filt_b[j]*prev_x[j];
+                if (j > 0) {
+                    out -= filt_a[j]*prev_y[j];
+                }
+            }
+
+            //save output value
+            prev_y[0] = out;
+            data[i][band] = (float)out;
+//            System.out.print("i:" + i + "  " + data[i][band] + "\t");
+        }
+    }
+
+
 
     /**
      * Artifact Removal
@@ -51,16 +85,18 @@ public class SVM_Helper {
 
     public double[][] artifactRemoval(double[][] fInEEGData) {
 
-        // Bandpass Filter
-        for (int i=0; i<fInEEGData.length;i++){
-            for(int k=0; k<fInEEGData[i].length; k++){
-                fInEEGData[i][k] = bw.filter(fInEEGData[i][k]);
-                System.out.print(fInEEGData[i][k] + "\t");
-            }
-            System.out.println();
-
+        for (int i=0; i<NUM_EEG_CH; i++){
+            filterIIR(preFilterB, preFilterA, fInEEGData, i);
         }
-
+//
+//        for (int i=0; i<fInEEGData.length; i++){
+//            for (int j =0; j<NUM_EEG_CH; j++){
+//                System.out.print(fInEEGData[i][j] + " \t\t ");
+//            }
+//            System.out.println();
+//
+//        }
+//
         // Array of fInEEGData should be 512 x 4 todo better way to init the 2D square array?
         double[][] fRefData = new double[fInEEGData.length][NUM_EEG_CH];
 //        Arrays.fill(fRefData, 0.0);
@@ -70,7 +106,7 @@ public class SVM_Helper {
 
         int dataLength = fInEEGData.length;
 
-        // Artifact Removal
+//        // Artifact Removal
         for (int j=0; j<nComp; j++){ //Loop 14 times.. TODO what is nComp for?
             for (int k=0; k<=(fInEEGData.length-kCompMat[j]); k++){ //Loop until not enough EEG to mean
                 //Getting mean
@@ -94,13 +130,13 @@ public class SVM_Helper {
                 }
             }
         }
-
-        //    fOutEEGData = fOutEEGData/para.nComp;
-        for(int row=0; row<fOutEEGData.length;row++){
-            for(int col=0; col<NUM_EEG_CH;col++){
-                fOutEEGData[row][col] = fOutEEGData[row][col] / nComp;
-            }
-        }
+//
+//        //    fOutEEGData = fOutEEGData/para.nComp;
+//        for(int row=0; row<fOutEEGData.length;row++){
+//            for(int col=0; col<NUM_EEG_CH;col++){
+//                fOutEEGData[row][col] = fOutEEGData[row][col] / nComp;
+//            }
+//        }
 
         return fOutEEGData;
     }
@@ -135,7 +171,7 @@ public class SVM_Helper {
         Arrays.fill(xm_filtered, 0);
 
         //bandpass filter them into different bands
-        xm_filtered = bandPassFilter(xm); //todo Stuck in band pass filter
+        xm_filtered = bandPassFilter(xm); //TODO Stuck in band pass filter
 
         for (int iSeg = 0; iSeg < numSeg; iSeg++) {
             // xstart = (iSeg-1)*winShift +1;
