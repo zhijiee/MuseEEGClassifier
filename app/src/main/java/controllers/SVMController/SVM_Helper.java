@@ -107,6 +107,7 @@ public class SVM_Helper {
         int dataLength = fInEEGData.length;
 
 //        // Artifact Removal
+        //ncomp for moving average for windows
         for (int j=0; j<nComp; j++){ //Loop 14 times.. TODO what is nComp for?
             for (int k=0; k<=(fInEEGData.length-kCompMat[j]); k++){ //Loop until not enough EEG to mean
                 //Getting mean
