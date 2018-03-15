@@ -1,20 +1,13 @@
 package controllers.SVMController;
 
 
-import java.util.Arrays;
-
-import controllers.SVMController.uk.me.berndporr.iirj.Butterworth;
-
 import static constants.SVMConstants.BPCoe;
 import static constants.SVMConstants.BPGain;
 import static constants.SVMConstants.BPNumSec;
-import static constants.SVMConstants.CENTER_FREQUENCY;
-import static constants.SVMConstants.F_ORDER;
 import static constants.SVMConstants.NUM_BAND;
 import static constants.SVMConstants.NUM_EEG_CH;
 import static constants.SVMConstants.N_START_BAND;
 import static constants.SVMConstants.SAMPLE_RATE;
-import static constants.SVMConstants.WIDTH_FREQUENCY;
 import static constants.SVMConstants.WINDOW_LENGTH;
 import static constants.SVMConstants.kCompMat;
 import static constants.SVMConstants.kCompMat2;
@@ -25,12 +18,8 @@ import static constants.SVMConstants.preFilterB;
 
 public class SVM_Helper {
 
-    Butterworth bw;
 
     public SVM_Helper() {
-        // Setup ButterWorth
-        // Calculate centerFrequency ==> https://electronics.stackexchange.com/questions/234752/why-is-center-frequency-of-a-bandpass-filter-is-given-by-the-geometric-average-o
-        bw = new Butterworth();
     }
 
     private double getMean(int start, int end, int col, double[][] fInEEGData) {
@@ -40,10 +29,10 @@ public class SVM_Helper {
             sum+=fInEEGData[i][col];
         }
 
-        return sum/(end-start);
+        return sum / (double) (end - start);
     }
 
-    public void filterIIR(double[] filt_b, double[] filt_a, double[][] data, int band) {
+    public void filterIIR(double[] filt_b, double[] filt_a, double[][] data, int ch) {
         int Nback = filt_b.length;
         double[] prev_y = new double[Nback];
         double[] prev_x = new double[Nback];
@@ -57,7 +46,7 @@ public class SVM_Helper {
             }
 
             //add in the new point
-            prev_x[0] = data[i][band];
+            prev_x[0] = data[i][ch];
 
             //compute the new data point
             double out = 0;
@@ -70,11 +59,40 @@ public class SVM_Helper {
 
             //save output value
             prev_y[0] = out;
-            data[i][band] = (float)out;
-//            System.out.print("i:" + i + "  " + data[i][band] + "\t");
+            data[i][ch] = (float) out;
         }
     }
 
+    public void filterIIR(double[] filt_b, double[] filt_a, double[][][] data, int ch, int band) {
+        int Nback = filt_b.length;
+        double[] prev_y = new double[Nback];
+        double[] prev_x = new double[Nback];
+
+        //step through data points
+        for (int i = 0; i < data.length; i++) {
+            //shift the previous outputs
+            for (int j = Nback - 1; j > 0; j--) {
+                prev_y[j] = prev_y[j - 1];
+                prev_x[j] = prev_x[j - 1];
+            }
+
+            //add in the new point
+            prev_x[0] = data[i][ch][band];
+
+            //compute the new data point
+            double out = 0;
+            for (int j = 0; j < Nback; j++) {
+                out += filt_b[j] * prev_x[j];
+                if (j > 0) {
+                    out -= filt_a[j] * prev_y[j];
+                }
+            }
+
+            //save output value
+            prev_y[0] = out;
+            data[i][ch][band] = (float) out;
+        }
+    }
 
 
     /**
@@ -88,35 +106,25 @@ public class SVM_Helper {
         for (int i=0; i<NUM_EEG_CH; i++){
             filterIIR(preFilterB, preFilterA, fInEEGData, i);
         }
-//
-//        for (int i=0; i<fInEEGData.length; i++){
-//            for (int j =0; j<NUM_EEG_CH; j++){
-//                System.out.print(fInEEGData[i][j] + " \t\t ");
-//            }
-//            System.out.println();
-//
-//        }
-//
+
         // Array of fInEEGData should be 512 x 4 todo better way to init the 2D square array?
         double[][] fRefData = new double[fInEEGData.length][NUM_EEG_CH];
-//        Arrays.fill(fRefData, 0.0);
 
         double[][] fOutEEGData = new double[fInEEGData.length][NUM_EEG_CH];
-//        Arrays.fill(fOutEEGData, 0.0);
 
         int dataLength = fInEEGData.length;
 
-//        // Artifact Removal
+        // Artifact Removal
         //ncomp for moving average for windows
-        for (int j=0; j<nComp; j++){ //Loop 14 times.. TODO what is nComp for?
-            for (int k=0; k<=(fInEEGData.length-kCompMat[j]); k++){ //Loop until not enough EEG to mean
+        for (int j = 0; j < nComp; j++) { //Loop 14 times..
+
+            for (int k = 0; k <= (fInEEGData.length - kCompMat[j]); k++) { //Loop until not enough EEG to mean
                 //Getting mean
                 //fRefData (k,:) = mean(fInEEGData(k:k+para.kCompMat(j)-1,:));
-
-                for (int col=0; col<NUM_EEG_CH; col++){
-                    fRefData[k][col] = getMean(k, k+kCompMat[j]-1,col, fInEEGData);
+                for (int ch = 0; ch < NUM_EEG_CH; ch++) {
+                    fRefData[k][ch] = getMean(k, k + kCompMat[j], ch, fInEEGData);
                 }
-
+            }
                 /*
                     fOutEEGData(1:datalength-para.kCompMat2(j),:) = ...
                     fInEEGData(para.kCompMat2(j)+1:datalength,:) - ...
@@ -124,20 +132,23 @@ public class SVM_Helper {
                     fOutEEGData (1:datalength-para.kCompMat2(j),:);
                 */
 
+
+            int index = kCompMat2[j];
                 for (int i=0;i<(dataLength-kCompMat2[j]);i++){
-                    for (int col=0;col<NUM_EEG_CH;col++){
-                        fOutEEGData[i][col] = fInEEGData[kCompMat2[j]+1][col] - fRefData[i][col] + fOutEEGData[i][col];
+                    for (int ch = 0; ch < NUM_EEG_CH; ch++) {
+                        fOutEEGData[i][ch] = fInEEGData[index][ch] - fRefData[i][ch] + fOutEEGData[i][ch];
                     }
+                    index++;
                 }
+
+        }
+
+        //    fOutEEGData = fOutEEGData/para.nComp;
+        for (int row = 0; row < fOutEEGData.length; row++) {
+            for (int col = 0; col < NUM_EEG_CH; col++) {
+                fOutEEGData[row][col] = fOutEEGData[row][col] / nComp;
             }
         }
-//
-//        //    fOutEEGData = fOutEEGData/para.nComp;
-//        for(int row=0; row<fOutEEGData.length;row++){
-//            for(int col=0; col<NUM_EEG_CH;col++){
-//                fOutEEGData[row][col] = fOutEEGData[row][col] / nComp;
-//            }
-//        }
 
         return fOutEEGData;
     }
@@ -169,7 +180,6 @@ public class SVM_Helper {
 
         double[][] xWinFeature = new double[numSeg][nband * numChannel];
         double[][][] xm_filtered = new double[xm.length][xm[0].length][nband]; //Create 3D array last one 6 for 6 different bands
-        Arrays.fill(xm_filtered, 0);
 
         //bandpass filter them into different bands
         xm_filtered = bandPassFilter(xm); //TODO Stuck in band pass filter
@@ -240,23 +250,15 @@ public class SVM_Helper {
 
         int nband = NUM_BAND;
         double[][][] xm_filtered = new double[xm.length][xm[0].length][nband];
-        Arrays.fill(xm_filtered, 0);
 
         /*
         for i= para.nstartband: nband
             xm_filtered(:,:,i) = xm;
-            nSection = para.BPNumSec(i);
-            fCoe = para.BPCoe{i};
-            fGain = para.BPGain{i};
-            for j=1:nSection
-                B = fCoe(j,1:3);
-                A = fCoe(j,4:6);
-                xm_filtered(:,:,i) = fGain(j)*filter(B,A,xm_filtered(:,:,i));
-            end
         end
          */
 
-        for (int band = N_START_BAND; band < nband; band++) {
+
+        for (int band = (N_START_BAND - 1); band < nband; band++) {
             // xm_filtered(:,:,i) = xm;
             for (int i = 0; i < xm_filtered.length; i++) {
                 for (int j = 0; j < xm_filtered[i].length; j++) {
@@ -264,14 +266,27 @@ public class SVM_Helper {
                 }
             }
 
-            // nSection = para.BPNumSec(i);
-
+            /*
+                nSection = para.BPNumSec(i);
+                fCoe = para.BPCoe{i};
+                fGain = para.BPGain{i};
+             */
             int nSection = BPNumSec[band];
-            double[][] FCoe = BPCoe[band];
-            double[] FGain = BPGain[band];
+            double[][] fCoe = BPCoe[band];
+            double[] fGain = BPGain[band];
 
-            for (int i = 0; i < nSection; i++) {
-                //TODO Require some help with separating into different bands
+            /*
+                for j=1:nSection
+                    B = fCoe(j,1:3);
+                    A = fCoe(j,4:6);
+                    xm_filtered(:,:,i) = fGain(j)*filter(B,A,xm_filtered(:,:,i));
+                end
+             */
+            for (int j = 0; j < nSection; j++) {
+                double[] B = setAB_for_filter(fCoe[j], 0, 2);
+                double[] A = setAB_for_filter(fCoe[j], 3, 5);
+
+                xm_filtered = bpfHelper(fGain[j], B, A, xm_filtered, band);
             }
 
 
@@ -279,5 +294,31 @@ public class SVM_Helper {
 
 
         return xm_filtered;
+    }
+
+    private double[][][] bpfHelper(double fGain, double[] B, double[] A, double[][][] xm_filtered, int band) {
+        // xm_filtered(:,:,i) = fGain(j)*filter(B,A,xm_filtered(:,:,i));
+
+        for (int ch = 0; ch < NUM_EEG_CH; ch++) {
+            filterIIR(B, A, xm_filtered, ch, band);
+        }
+
+        for (int i = 0; i < xm_filtered.length; i++) {
+            for (int ch = 0; ch < NUM_EEG_CH; ch++) {
+                xm_filtered[i][ch][band] = xm_filtered[i][ch][band] * fGain;
+            }
+        }
+        return xm_filtered;
+    }
+
+    private double[] setAB_for_filter(double[] fCoe, int start, int end) {
+        double[] result = new double[3];
+
+        int index = 0;
+        for (int i = start; i <= end; i++) {
+            result[index++] = fCoe[i];
+        }
+
+        return result;
     }
 }
