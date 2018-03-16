@@ -118,13 +118,14 @@ public class SVM_Helper {
         //ncomp for moving average for windows
         for (int j = 0; j < nComp; j++) { //Loop 14 times..
 
-            for (int k = 0; k <= (fInEEGData.length - kCompMat[j]); k++) { //Loop until not enough EEG to mean
+            for (int k = 0; k < (fInEEGData.length - kCompMat[j]); k++) { //Loop until not enough EEG to mean
                 //Getting mean
                 //fRefData (k,:) = mean(fInEEGData(k:k+para.kCompMat(j)-1,:));
                 for (int ch = 0; ch < NUM_EEG_CH; ch++) {
                     fRefData[k][ch] = getMean(k, k + kCompMat[j], ch, fInEEGData);
                 }
             }
+
                 /*
                     fOutEEGData(1:datalength-para.kCompMat2(j),:) = ...
                     fInEEGData(para.kCompMat2(j)+1:datalength,:) - ...
@@ -167,32 +168,35 @@ public class SVM_Helper {
 
         double fs = SAMPLE_RATE;
         double winLen = WINDOW_LENGTH;
-        double winIdx = 1;
-        double[] winTime;
-        double[] winStart;
+//        double winIdx = 1;
+//        double[] winTime;
+//        double[] winStart;
 
-        int winSize = (int) Math.floor(fs * fs); // window size = 2 * 256 = 512
-        int winShift = (int) Math.floor(winSize * (100 - overLap / 100)); //sample overlap 0.5 * 512 = 256
+        int winSize = (int) Math.floor(winLen * fs); // window size = 2 * 256 = 512
+
+        int winShift = (int) Math.floor(winSize * (100 - overLap) / 100); //sample overlap 0.5 * 512 = 256
+
         int numSeg = (int) Math.floor( (xm.length - winSize) / winShift);
+
         int numChannel = xm[0].length;
 
         int nband = NUM_BAND;
 
         double[][] xWinFeature = new double[numSeg][nband * numChannel];
-        double[][][] xm_filtered = new double[xm.length][xm[0].length][nband]; //Create 3D array last one 6 for 6 different bands
+        double[][][] xm_filtered;// = new double[xm.length][xm[0].length][nband]; //Create 3D array last one 6 for 6 different bands
 
         //bandpass filter them into different bands
-        xm_filtered = bandPassFilter(xm); //TODO Stuck in band pass filter
+        xm_filtered = bandPassFilter(xm);
+        double[][][] xWinFeature1 = new double[numSeg][numChannel][nband]; //segment, ch x 4, band x 6
 
         for (int iSeg = 0; iSeg < numSeg; iSeg++) {
             // xstart = (iSeg-1)*winShift +1;
             // xend = (iSeg-1)*winShift + winSz;
 
-            int xStart = (iSeg) * winShift + 1;
+            int xStart = (iSeg) * winShift;// + 1;
             int xEnd = (iSeg) * winShift + winSize;
 
 
-            double[][][] xWinFeature1 = new double[numSeg][numChannel][nband]; //segment, ch x 4, band x 6
 
             /*
                 for iCh = 1: numChannel
@@ -205,7 +209,6 @@ public class SVM_Helper {
                     xWinFeature1[iSeg][iCh][band] = mySum(xm_filtered, xStart, xEnd, iCh, band); //CTG: relative power
                 }
 
-                //TODO I don't see how squeeze affects this. So i am doing normal division. Can use same loop as above
                 for (int band = 0; band < nband; band++) {
                     xWinFeature1[iSeg][iCh][band] = mySqueeze(xWinFeature1, iSeg, iCh, band);
                 }

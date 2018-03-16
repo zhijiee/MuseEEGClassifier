@@ -11,8 +11,6 @@ import controllers.SVMController.SVM_Helper;
 
 import static constants.JUnitTestConstants.DELTA;
 import static constants.JUnitTestConstants.EEG_AFTER_ARTIFACT_REMOVAL;
-import static constants.JUnitTestConstants.EEG_AFTER_BANDPASS;
-import static constants.JUnitTestConstants.EEG_RAW;
 import static constants.SVMConstants.NUM_EEG_CH;
 import static constants.SVMConstants.preFilterA;
 import static constants.SVMConstants.preFilterB;
@@ -21,39 +19,51 @@ import static junit.framework.Assert.assertFalse;
 public class SVM_Unit_Test {
 
     static SVM_Helper sh = new SVM_Helper();
+    static String eeg_raw_fn = "/Volumes/SandiskSD/DevelopmentWorkspace/AndroidDevelopment/MuseEEGClassifier/app/src/test/java/assets/raw_eeg.csv";
+    static String eeg_after_filter_fn = "/Volumes/SandiskSD/DevelopmentWorkspace/AndroidDevelopment/MuseEEGClassifier/app/src/test/java/assets/eeg_after_filter.csv";
+    static String eeg_after_ar_fn = "/Volumes/SandiskSD/DevelopmentWorkspace/AndroidDevelopment/MuseEEGClassifier/app/src/test/java/assets/eeg_after_ar.csv";
 
     @Test
     public void testFilterIIRFunction() throws Exception {
-        double[][] java_bandpass_eeg = deep_copy_2d(EEG_RAW);
+//        double[][] java_bandpass_eeg = deep_copy_2d(EEG_RAW);
+        double[][] java_bandpass_eeg = csv_reader(eeg_raw_fn, 1024, 4);
+
         for (int i = 0; i < NUM_EEG_CH; i++) {
             sh.filterIIR(preFilterB, preFilterA, java_bandpass_eeg, i);
         }
-
-        compare_array_with_delta(java_bandpass_eeg, EEG_AFTER_BANDPASS);
+        double[][] eeg_after_filter = csv_reader(eeg_after_filter_fn, 1024, 4);
+        compare_array_with_delta(java_bandpass_eeg, eeg_after_filter);
 
     }
 
     @Test
     public void testArtifactRemoval() throws Exception {
 
-        double[][] eegRaw = deep_copy_2d(EEG_RAW);
+//        double[][] eegRaw = deep_copy_2d(EEG_RAW);
+        double[][] eegRaw = csv_reader(eeg_raw_fn, 1024, 4);
         double[][] eeg_ar_java = sh.artifactRemoval(eegRaw);
-        compare_array_with_delta(eeg_ar_java, EEG_AFTER_ARTIFACT_REMOVAL);
+        double[][] eeg_matlab_after_ar = csv_reader(eeg_after_ar_fn, 1024, 4);
+        compare_array_with_delta(eeg_ar_java, eeg_matlab_after_ar);
 
     }
 
-//    @Test
-//    public void testExtractFeatures(){
-//        SVM_Helper sh = new SVM_Helper();
-//
+    @Test
+    public void testExtractFeatures() throws Exception {
+        SVM_Helper sh = new SVM_Helper();
+
 //        double[][] eeg = deep_copy_2d(EEG_AFTER_ARTIFACT_REMOVAL);
-//        double[][] result = sh.extractFeatures(eeg);
-//
-//
-//    }
+        double[][] eeg = csv_reader(eeg_after_ar_fn, 1024, 4);
+        double[][] rs = sh.extractFeatures(eeg);
+
+//        compare_array_with_delta(rs,matlab);
+
+        System.out.print("");
+
+
+    }
 
     @Test
-    public void testBandpassFilter() {
+    public void testBandpassFilter() throws Exception {
         double[][] xm = deep_copy_2d(EEG_AFTER_ARTIFACT_REMOVAL);
         double[][][] xmFiltered = sh.bandPassFilter(xm);
         String filename = "/Volumes/SandiskSD/DevelopmentWorkspace/AndroidDevelopment/MuseEEGClassifier/app/src/test/java/assets/extractFeature_after_bandpass.csv";
@@ -121,15 +131,12 @@ public class SVM_Unit_Test {
             int count;
             int index = 0;
             while ((nextRecord = csvReader.readNext()) != null) {
-//                for(int i=0;i<nextRecord.length;i++){
                 count = 0;
                 for (int k = 0; k < band; k++) {
                     for (int j = 0; j < ch; j++) { //Shift the Ch first
                         a[index][j][k] = Double.parseDouble(nextRecord[count++]);
                     }
                 }
-//                    System.out.print(nextRecord[i] + "\t");
-//                }
                 System.out.println();
                 index++;
             }
@@ -138,6 +145,34 @@ public class SVM_Unit_Test {
         }
 
         return a;
+
+    }
+
+    private double[][] csv_reader(String filename, int size, int ch) {
+
+        double[][] new_array = new double[size][ch];
+
+        Reader reader = null;
+        CSVReader csvReader = null;
+        try {
+            reader = Files.newBufferedReader(Paths.get(filename));
+            csvReader = new CSVReader(reader);
+            String[] nextRecord;
+            int count;
+            int index = 0;
+            while ((nextRecord = csvReader.readNext()) != null) {
+                count = 0;
+                for (int j = 0; j < ch; j++) {
+                    new_array[index][j] = Double.parseDouble(nextRecord[count++]);
+                }
+                System.out.println();
+                index++;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return new_array;
 
     }
 }
