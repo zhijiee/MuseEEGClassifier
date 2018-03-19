@@ -22,6 +22,7 @@ public class SVM_Unit_Test {
     static String eeg_raw_fn = "/Volumes/SandiskSD/DevelopmentWorkspace/AndroidDevelopment/MuseEEGClassifier/app/src/test/java/assets/raw_eeg.csv";
     static String eeg_after_filter_fn = "/Volumes/SandiskSD/DevelopmentWorkspace/AndroidDevelopment/MuseEEGClassifier/app/src/test/java/assets/eeg_after_filter.csv";
     static String eeg_after_ar_fn = "/Volumes/SandiskSD/DevelopmentWorkspace/AndroidDevelopment/MuseEEGClassifier/app/src/test/java/assets/eeg_after_ar.csv";
+    static String eeg_extract_features_fn = "/Volumes/SandiskSD/DevelopmentWorkspace/AndroidDevelopment/MuseEEGClassifier/app/src/test/java/assets/ExtractFeaturesMatlab.csv";
 
     @Test
     public void testFilterIIRFunction() throws Exception {
@@ -53,9 +54,11 @@ public class SVM_Unit_Test {
 
 //        double[][] eeg = deep_copy_2d(EEG_AFTER_ARTIFACT_REMOVAL);
         double[][] eeg = csv_reader(eeg_after_ar_fn, 1024, 4);
-        double[][] rs = sh.extractFeatures(eeg);
+        double[][] extractedFeatures = sh.extractFeatures(eeg);
 
-//        compare_array_with_delta(rs,matlab);
+        double[][] matlabExtractFeatures = csv_reader(eeg_extract_features_fn, 2, 24);
+
+        compare_array_with_delta(extractedFeatures, matlabExtractFeatures);
 
         System.out.print("");
 

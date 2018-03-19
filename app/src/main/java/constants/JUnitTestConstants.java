@@ -6,7 +6,7 @@ package constants;
 
 public final class JUnitTestConstants {
 
-    public final static double DELTA = 0.005;
+    public final static double DELTA = 0.003;
 
     public final static double[][] EEG_AFTER_ARTIFACT_REMOVAL = {
             {39.63944787485328, 40.67422944260234, 40.37519246452297, 41.04021072601672},

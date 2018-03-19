@@ -204,13 +204,15 @@ public class SVM_Helper {
                     xwinFeature1(iSeg,iCh,:) = xwinFeature1(iSeg,iCh,:)/sum(squeeze(xwinFeature1(iSeg,iCh,:)));  %CTG: relative power
                 end
             */
-            for (int iCh = 1; iCh < numChannel; iCh++) {
+            for (int iCh = 0; iCh < numChannel; iCh++) {
                 for (int band = 0; band < nband; band++) {
                     xWinFeature1[iSeg][iCh][band] = mySum(xm_filtered, xStart, xEnd, iCh, band); //CTG: relative power
                 }
 
+                double mySumOfSqueeze = mySqueeze(xWinFeature1, iSeg, iCh);
                 for (int band = 0; band < nband; band++) {
-                    xWinFeature1[iSeg][iCh][band] = mySqueeze(xWinFeature1, iSeg, iCh, band);
+//                    xWinFeature1[iSeg][iCh][band] = mySqueeze(xWinFeature1, iSeg, iCh, band);
+                    xWinFeature1[iSeg][iCh][band] = xWinFeature1[iSeg][iCh][band] / mySumOfSqueeze;
                 }
 
             }
@@ -228,25 +230,26 @@ public class SVM_Helper {
 
     }
 
-    private double mySqueeze(double[][][] xWinFeature1, int iSeg, int iCh, int band) {
+    private double mySqueeze(double[][][] xWinFeature1, int iSeg, int iCh) {
         int sum = 0;
 
         for (int i = 0; i < NUM_BAND; i++) {
             sum += xWinFeature1[iSeg][iCh][i];
         }
+        return sum;
 
-        return xWinFeature1[iSeg][iCh][band] / sum;
+//        return xWinFeature1[iSeg][iCh][band] / sum;
     }
 
     private double mySum(double[][][] xm_filtered, int xStart, int xEnd, int iCh, int band) {
 
         double sum = 0;
         for (int i = xStart; i < xEnd; i++) {
-            sum += xm_filtered[i][iCh][band];
+            sum += Math.pow(xm_filtered[i][iCh][band], 2);
         }
 
-
-        return Math.pow(sum, 2);
+        return sum;
+//        return Math.pow(sum, 2);
     }
 
     public double[][][] bandPassFilter(double[][] xm) {
