@@ -81,10 +81,9 @@ public class SVM_Unit_Test {
     @Test
     public void testRawToFeatures() throws Exception {
         double[][] raw_eeg = csv_reader(eeg_raw_fn, sampleSize, NUM_EEG_CH);
-        double[][] fEEGData = sh.artifactRemoval(raw_eeg);
-        double[][] extractedFeatures = sh.extractFeatures(fEEGData);
-
         double[][] matlabExtractedFeatures = csv_reader(eeg_extract_features_fn, 10, 24);
+
+        double[][] extractedFeatures = sh.rawToFeature(raw_eeg);
 
         compare_array_with_delta(matlabExtractedFeatures, extractedFeatures);
 
@@ -102,19 +101,24 @@ public class SVM_Unit_Test {
         svm_model svmModel;
         svmModel = svm.svm_load_model(br);
 
-        //Setting up features for testing
-        svm_node[] node = new svm_node[24];
-        node[0] = new svm_node();
-        node[0].index = 1;
-        node[0].value = 0.235298581085041;
+        //Setup Features
+        double[][] raw_eeg = csv_reader(eeg_raw_fn, sampleSize, NUM_EEG_CH);
+        double[][] feature = sh.rawToFeature(raw_eeg);
 
         //Result Meditation: 0, Stress: 1
+        //Setting up features for testing
+        svm_node[] node = new svm_node[feature[0].length];
 
-//        double[] a = {1, 2};
-        double result = svm.svm_predict(svmModel, node);
-//        double result = svm.svm_predict_probability(svmModel, node, a);
-        System.out.println("result = " + result);
+        for (int i = 0; i < feature.length; i++) {
+            node = sh.featuresToSVMNode(feature[i]);
+            double[] probResult = new double[2];
+            double result = svm.svm_predict_probability(svmModel, node, probResult);
+            System.out.print("result = " + result);
+            System.out.println("\tProbResult = " + probResult[0]);
+
+        }
     }
+
 
     private double[][] deep_copy_2d(double[][] array) {
         double[][] copiedArray = new double[array.length][array[0].length];
@@ -181,7 +185,6 @@ public class SVM_Unit_Test {
                         a[index][j][k] = Double.parseDouble(nextRecord[count++]);
                     }
                 }
-                System.out.println();
                 index++;
             }
         } catch (IOException e) {
@@ -209,7 +212,6 @@ public class SVM_Unit_Test {
                 for (int j = 0; j < ch; j++) {
                     new_array[index][j] = Double.parseDouble(nextRecord[count++]);
                 }
-                System.out.println();
                 index++;
             }
         } catch (IOException e) {

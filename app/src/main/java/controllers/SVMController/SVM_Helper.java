@@ -1,6 +1,8 @@
 package controllers.SVMController;
 
 
+import libsvm.svm_node;
+
 import static constants.SVMConstants.BPCoe;
 import static constants.SVMConstants.BPGain;
 import static constants.SVMConstants.BPNumSec;
@@ -22,7 +24,25 @@ public class SVM_Helper {
     public SVM_Helper() {
     }
 
+    public double[][] rawToFeature(double[][] rawEEG) {
+        double[][] fEEGData = artifactRemoval(rawEEG);
+        double[][] extractedFeatures = extractFeatures(fEEGData);
 
+        return extractedFeatures;
+    }
+
+    public svm_node[] featuresToSVMNode(double[] features) {
+
+        svm_node[] svmNode = new svm_node[features.length];
+
+        for (int i = 0; i < features.length; i++) {
+            svmNode[i] = new svm_node();
+            svmNode[i].index = i;
+            svmNode[i].value = features[i];
+        }
+
+        return svmNode;
+    }
     public void filterIIR(double[] filt_b, double[] filt_a, double[][] data, int ch) {
         int Nback = filt_b.length;
         double[] prev_y = new double[Nback];
@@ -54,7 +74,6 @@ public class SVM_Helper {
         }
     }
 
-    // Requires delta of 0.003 otherwise comparisin does not work.
     public void filterIIR(double[] filt_b, double[] filt_a, double[][][] data, int ch, int band) {
         int Nback = filt_b.length;
         double[] prev_y = new double[Nback];
@@ -86,13 +105,11 @@ public class SVM_Helper {
         }
     }
 
-
     /**
      * Artifact Removal
      * Assuming window size of 512 x 4
      * @param fInEEGData EEG window
      */
-
     public double[][] artifactRemoval(double[][] fInEEGData) {
 
         for (int i=0; i<NUM_EEG_CH; i++){
