@@ -33,12 +33,19 @@ public class SVM_Helper {
 
     public svm_node[] featuresToSVMNode(double[] features) {
 
-        svm_node[] svmNode = new svm_node[features.length];
+        svm_node[] svmNode = new svm_node[features.length*2];
 
-        for (int i = 0; i < features.length; i++) {
+        int len = features.length;
+
+        for (int i = 0; i < len; i++) {
             svmNode[i] = new svm_node();
             svmNode[i].index = i;
             svmNode[i].value = features[i];
+
+            svmNode[i+features.length] = new svm_node();
+            svmNode[i+features.length].index = i+len;
+            svmNode[i+features.length].value = 0;
+
         }
 
         return svmNode;

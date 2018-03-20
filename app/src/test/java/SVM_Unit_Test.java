@@ -91,7 +91,6 @@ public class SVM_Unit_Test {
 
     @Test //TODO load svm model
     public void testLoadSVMmodel() throws Exception {
-
         //Load get file as inputsteam
         String fn = "svm_model_test.txt";
         InputStream is = getClass().getClassLoader().getResourceAsStream(fn);
