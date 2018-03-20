@@ -22,15 +22,6 @@ public class SVM_Helper {
     public SVM_Helper() {
     }
 
-    private double getMean(int start, int end, int col, double[][] fInEEGData) {
-
-        double sum=0;
-        for (int i=start; i<end; i++){
-            sum+=fInEEGData[i][col];
-        }
-
-        return sum / (double) (end - start);
-    }
 
     public void filterIIR(double[] filt_b, double[] filt_a, double[][] data, int ch) {
         int Nback = filt_b.length;
@@ -107,7 +98,7 @@ public class SVM_Helper {
             filterIIR(preFilterB, preFilterA, fInEEGData, i);
         }
 
-        // Array of fInEEGData should be 512 x 4 todo better way to init the 2D square array?
+        // Array of fInEEGData should be 512 x 4
         double[][] fRefData = new double[fInEEGData.length][NUM_EEG_CH];
 
         double[][] fOutEEGData = new double[fInEEGData.length][NUM_EEG_CH];
@@ -122,17 +113,9 @@ public class SVM_Helper {
                 //Getting mean
                 //fRefData (k,:) = mean(fInEEGData(k:k+para.kCompMat(j)-1,:));
                 for (int ch = 0; ch < NUM_EEG_CH; ch++) {
-                    fRefData[k][ch] = getMean(k, k + kCompMat[j], ch, fInEEGData);
+                    fRefData[k][ch] = getMean(k, (k + kCompMat[j]), ch, fInEEGData);
                 }
             }
-
-                /*
-                    fOutEEGData(1:datalength-para.kCompMat2(j),:) = ...
-                    fInEEGData(para.kCompMat2(j)+1:datalength,:) - ...
-                    fRefData(1:datalength-para.kCompMat2(j),:) + ...
-                    fOutEEGData (1:datalength-para.kCompMat2(j),:);
-                */
-
 
             int index = kCompMat2[j];
                 for (int i=0;i<(dataLength-kCompMat2[j]);i++){
@@ -176,7 +159,7 @@ public class SVM_Helper {
 
         int winShift = (int) Math.floor(winSize * (100 - overLap) / 100); //sample overlap 0.5 * 512 = 256
 
-        int numSeg = (int) Math.floor( (xm.length - winSize) / winShift);
+        int numSeg = (int) Math.floor((xm.length - winSize) / winShift) + 1;
 
         int numChannel = xm[0].length;
 
@@ -230,28 +213,6 @@ public class SVM_Helper {
 
     }
 
-    private double mySqueeze(double[][][] xWinFeature1, int iSeg, int iCh) {
-        int sum = 0;
-
-        for (int i = 0; i < NUM_BAND; i++) {
-            sum += xWinFeature1[iSeg][iCh][i];
-        }
-        return sum;
-
-//        return xWinFeature1[iSeg][iCh][band] / sum;
-    }
-
-    private double mySum(double[][][] xm_filtered, int xStart, int xEnd, int iCh, int band) {
-
-        double sum = 0;
-        for (int i = xStart; i < xEnd; i++) {
-            sum += Math.pow(xm_filtered[i][iCh][band], 2);
-        }
-
-        return sum;
-//        return Math.pow(sum, 2);
-    }
-
     public double[][][] bandPassFilter(double[][] xm) {
 
         int nband = NUM_BAND;
@@ -300,6 +261,38 @@ public class SVM_Helper {
 
 
         return xm_filtered;
+    }
+
+    private double getMean(int kStart, int end, int col, double[][] fInEEGData) {
+        //fRefData (k,:) = mean(fInEEGData(k:k+para.kCompMat(j)-1,:));
+        double sum = 0;
+        for (int i = kStart; i < end; i++) {
+            sum += fInEEGData[i][col];
+        }
+
+        return sum / (double) (end - kStart);
+    }
+
+    private double mySqueeze(double[][][] xWinFeature1, int iSeg, int iCh) {
+        int sum = 0;
+
+        for (int i = 0; i < NUM_BAND; i++) {
+            sum += xWinFeature1[iSeg][iCh][i];
+        }
+        return sum;
+
+//        return xWinFeature1[iSeg][iCh][band] / sum;
+    }
+
+    private double mySum(double[][][] xm_filtered, int xStart, int xEnd, int iCh, int band) {
+
+        double sum = 0;
+        for (int i = xStart; i < xEnd; i++) {
+            sum += Math.pow(xm_filtered[i][iCh][band], 2);
+        }
+
+        return sum;
+//        return Math.pow(sum, 2);
     }
 
     private double[][][] bpfHelper(double fGain, double[] B, double[] A, double[][][] xm_filtered, int band) {
