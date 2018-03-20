@@ -78,28 +78,43 @@ public class SVM_Unit_Test {
         compare_array_with_delta(matlab, xmFiltered);
     }
 
-    @Test //TODO
-    public void loadSVMmodel() throws Exception {
-        svm_model svmModel = new svm_model();
-        String fn = "svm_model.txt";
-        InputStream is = getClass().getClassLoader().getResourceAsStream(fn);
+    @Test
+    public void testRawToFeatures() throws Exception {
+        double[][] raw_eeg = csv_reader(eeg_raw_fn, sampleSize, NUM_EEG_CH);
+        double[][] fEEGData = sh.artifactRemoval(raw_eeg);
+        double[][] extractedFeatures = sh.extractFeatures(fEEGData);
 
-        BufferedReader br = new BufferedReader(new InputStreamReader(is));
+        double[][] matlabExtractedFeatures = csv_reader(eeg_extract_features_fn, 10, 24);
 
-        svmModel = svm.svm_load_model(br);
+        compare_array_with_delta(matlabExtractedFeatures, extractedFeatures);
 
-        svm_node[] node = new svm_node[1];
-        node[0] = new svm_node();
-        node[0].index = 1;
-        node[0].value = 0.4617394630959994;
-
-        double[] a = {1, 2};
-        // Meditation: 0, Stress: 1
-//        double result  = svm.svm_predict(svmModel, node);
-        double result = svm.svm_predict_probability(svmModel, node, a);
-        System.out.println("result = " + result);
     }
 
+    @Test //TODO load svm model
+    public void testLoadSVMmodel() throws Exception {
+
+        //Load get file as inputsteam
+        String fn = "svm_model_test.txt";
+        InputStream is = getClass().getClassLoader().getResourceAsStream(fn);
+        BufferedReader br = new BufferedReader(new InputStreamReader(is));
+
+        //Load Model
+        svm_model svmModel;
+        svmModel = svm.svm_load_model(br);
+
+        //Setting up features for testing
+        svm_node[] node = new svm_node[24];
+        node[0] = new svm_node();
+        node[0].index = 1;
+        node[0].value = 0.235298581085041;
+
+        //Result Meditation: 0, Stress: 1
+
+//        double[] a = {1, 2};
+        double result = svm.svm_predict(svmModel, node);
+//        double result = svm.svm_predict_probability(svmModel, node, a);
+        System.out.println("result = " + result);
+    }
 
     private double[][] deep_copy_2d(double[][] array) {
         double[][] copiedArray = new double[array.length][array[0].length];

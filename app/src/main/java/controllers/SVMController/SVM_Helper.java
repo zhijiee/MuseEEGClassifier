@@ -54,6 +54,7 @@ public class SVM_Helper {
         }
     }
 
+    // Requires delta of 0.003 otherwise comparisin does not work.
     public void filterIIR(double[] filt_b, double[] filt_a, double[][][] data, int ch, int band) {
         int Nback = filt_b.length;
         double[] prev_y = new double[Nback];

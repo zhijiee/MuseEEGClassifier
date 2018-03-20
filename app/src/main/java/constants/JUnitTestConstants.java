@@ -1,12 +1,9 @@
 package constants;
 
-/**
- * Created by zhijie on 13/3/18.
- */
-
 public final class JUnitTestConstants {
 
-    public final static double DELTA = 0.003;
+    //0.003 is for testFilterIIRFunction() to pass
+    public final static double DELTA = 0.001;
 
     public final static int sampleSize = 2817;
 
