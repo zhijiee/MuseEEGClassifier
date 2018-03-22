@@ -66,7 +66,6 @@ public class ActivityRealTimeEEGClassifier extends Activity implements View.OnCl
         }
 
         svm_model svmModel = null;
-//        svm.svm_train()
         try{
             AssetManager am = getAssets();
             BufferedReader br = new BufferedReader(new InputStreamReader(am.open(SVM_MODEL)));
@@ -76,8 +75,6 @@ public class ActivityRealTimeEEGClassifier extends Activity implements View.OnCl
             e.printStackTrace();
         }
 
-//        Log.d(TAG, gson.toJson(svmModel));
-//        svm.svm_predict(svmModel, ,'b -1' );
 
     }
 

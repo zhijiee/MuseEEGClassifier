@@ -24,6 +24,12 @@ public class SVM_Helper {
     public SVM_Helper() {
     }
 
+    /**
+     * Convert raw eeg from muse to features for predict.
+     *
+     * @param rawEEG Raw EEG from Muse
+     * @return Extracted Features from raw EEG
+     */
     public double[][] rawToFeature(double[][] rawEEG) {
         double[][] fEEGData = artifactRemoval(rawEEG);
         double[][] extractedFeatures = extractFeatures(fEEGData);
@@ -50,6 +56,7 @@ public class SVM_Helper {
 
         return svmNode;
     }
+
     public void filterIIR(double[] filt_b, double[] filt_a, double[][] data, int ch) {
         int Nback = filt_b.length;
         double[] prev_y = new double[Nback];
@@ -163,22 +170,9 @@ public class SVM_Helper {
     }
 
     public double[][] extractFeatures(double[][] xm) {
-        /*
-        %==  Initialize parameters
-        fs = para.fs;
-        winLen = para.winLen;     %lzq: window length, 3 seconds
-                overlap = para.overlap;
-        winTime = [];
-        winStart = [];
-        winEnd = [];
-        winIdx = 1;
-        */
 
         double fs = SAMPLE_RATE;
         double winLen = WINDOW_LENGTH;
-//        double winIdx = 1;
-//        double[] winTime;
-//        double[] winStart;
 
         int winSize = (int) Math.floor(winLen * fs); // window size = 2 * 256 = 512
 
@@ -198,20 +192,10 @@ public class SVM_Helper {
         double[][][] xWinFeature1 = new double[numSeg][numChannel][nband]; //segment, ch x 4, band x 6
 
         for (int iSeg = 0; iSeg < numSeg; iSeg++) {
-            // xstart = (iSeg-1)*winShift +1;
-            // xend = (iSeg-1)*winShift + winSz;
 
             int xStart = (iSeg) * winShift;// + 1;
             int xEnd = (iSeg) * winShift + winSize;
 
-
-
-            /*
-                for iCh = 1: numChannel
-                    xwinFeature1(iSeg,iCh,:) = sum(xm_filtered(xstart:xend,iCh,:).^2);  %CTG: relative power
-                    xwinFeature1(iSeg,iCh,:) = xwinFeature1(iSeg,iCh,:)/sum(squeeze(xwinFeature1(iSeg,iCh,:)));  %CTG: relative power
-                end
-            */
             for (int iCh = 0; iCh < numChannel; iCh++) {
                 for (int band = 0; band < nband; band++) {
                     xWinFeature1[iSeg][iCh][band] = mySum(xm_filtered, xStart, xEnd, iCh, band); //CTG: relative power
@@ -219,7 +203,6 @@ public class SVM_Helper {
 
                 double mySumOfSqueeze = mySqueeze(xWinFeature1, iSeg, iCh);
                 for (int band = 0; band < nband; band++) {
-//                    xWinFeature1[iSeg][iCh][band] = mySqueeze(xWinFeature1, iSeg, iCh, band);
                     xWinFeature1[iSeg][iCh][band] = xWinFeature1[iSeg][iCh][band] / mySumOfSqueeze;
                 }
 
@@ -243,37 +226,17 @@ public class SVM_Helper {
         int nband = NUM_BAND;
         double[][][] xm_filtered = new double[xm.length][xm[0].length][nband];
 
-        /*
-        for i= para.nstartband: nband
-            xm_filtered(:,:,i) = xm;
-        end
-         */
-
-
         for (int band = (N_START_BAND - 1); band < nband; band++) {
-            // xm_filtered(:,:,i) = xm;
             for (int i = 0; i < xm_filtered.length; i++) {
                 for (int j = 0; j < xm_filtered[i].length; j++) {
                     xm_filtered[i][j][band] = xm[i][j];
                 }
             }
 
-            /*
-                nSection = para.BPNumSec(i);
-                fCoe = para.BPCoe{i};
-                fGain = para.BPGain{i};
-             */
             int nSection = BPNumSec[band];
             double[][] fCoe = BPCoe[band];
             double[] fGain = BPGain[band];
 
-            /*
-                for j=1:nSection
-                    B = fCoe(j,1:3);
-                    A = fCoe(j,4:6);
-                    xm_filtered(:,:,i) = fGain(j)*filter(B,A,xm_filtered(:,:,i));
-                end
-             */
             for (int j = 0; j < nSection; j++) {
                 double[] B = setAB_for_filter(fCoe[j], 0, 2);
                 double[] A = setAB_for_filter(fCoe[j], 3, 5);
@@ -289,7 +252,6 @@ public class SVM_Helper {
     }
 
     private double getMean(int kStart, int end, int col, double[][] fInEEGData) {
-        //fRefData (k,:) = mean(fInEEGData(k:k+para.kCompMat(j)-1,:));
         double sum = 0;
         for (int i = kStart; i < end; i++) {
             sum += fInEEGData[i][col];
@@ -305,8 +267,6 @@ public class SVM_Helper {
             sum += xWinFeature1[iSeg][iCh][i];
         }
         return sum;
-
-//        return xWinFeature1[iSeg][iCh][band] / sum;
     }
 
     private double mySum(double[][][] xm_filtered, int xStart, int xEnd, int iCh, int band) {
@@ -317,11 +277,9 @@ public class SVM_Helper {
         }
 
         return sum;
-//        return Math.pow(sum, 2);
     }
 
     private double[][][] bpfHelper(double fGain, double[] B, double[] A, double[][][] xm_filtered, int band) {
-        // xm_filtered(:,:,i) = fGain(j)*filter(B,A,xm_filtered(:,:,i));
 
         for (int ch = 0; ch < NUM_EEG_CH; ch++) {
             filterIIR(B, A, xm_filtered, ch, band);
