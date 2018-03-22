@@ -14,7 +14,8 @@ import libsvm.svm_model;
 import libsvm.svm_node;
 
 import static constants.JUnitTestConstants.DELTA;
-import static constants.JUnitTestConstants.sampleSize;
+import static constants.JUnitTestConstants.MEDITATION_CLASS;
+import static constants.JUnitTestConstants.STRESS_CLASS;
 import static constants.SVMConstants.NUM_BAND;
 import static constants.SVMConstants.NUM_EEG_CH;
 import static constants.SVMConstants.preFilterA;
@@ -31,13 +32,13 @@ public class SVM_Unit_Test {
 
     @Test
     public void testFilterIIRFunction() throws Exception {
-        double[][] java_bandpass_eeg = csv_reader(eeg_raw_fn, sampleSize, NUM_EEG_CH);
+        double[][] java_bandpass_eeg = csv_reader(eeg_raw_fn, NUM_EEG_CH);
 
         for (int i = 0; i < NUM_EEG_CH; i++) {
             sh.filterIIR(preFilterB, preFilterA, java_bandpass_eeg, i);
         }
 
-        double[][] matlab_eeg_after_filter = csv_reader(eeg_after_filter_fn, sampleSize, NUM_EEG_CH);
+        double[][] matlab_eeg_after_filter = csv_reader(eeg_after_filter_fn, NUM_EEG_CH);
         compare_array_with_delta(matlab_eeg_after_filter, java_bandpass_eeg);
 
     }
@@ -45,10 +46,9 @@ public class SVM_Unit_Test {
     @Test
     public void testArtifactRemoval() throws Exception {
 
-//        double[][] eegRaw = deep_copy_2d(EEG_RAW);
-        double[][] eegRaw = csv_reader(eeg_raw_fn, sampleSize, NUM_EEG_CH);
+        double[][] eegRaw = csv_reader(eeg_raw_fn, NUM_EEG_CH);
         double[][] eeg_ar_java = sh.artifactRemoval(eegRaw);
-        double[][] eeg_matlab_after_ar = csv_reader(eeg_after_ar_fn, sampleSize, NUM_EEG_CH);
+        double[][] eeg_matlab_after_ar = csv_reader(eeg_after_ar_fn, NUM_EEG_CH);
         compare_array_with_delta(eeg_matlab_after_ar, eeg_ar_java);
 
     }
@@ -57,10 +57,10 @@ public class SVM_Unit_Test {
     public void testExtractFeatures() throws Exception {
         SVM_Helper sh = new SVM_Helper();
 
-        double[][] eeg = csv_reader(eeg_after_ar_fn, sampleSize, NUM_EEG_CH);
+        double[][] eeg = csv_reader(eeg_after_ar_fn, NUM_EEG_CH);
         double[][] extractedFeatures = sh.extractFeatures(eeg);
 
-        double[][] matlabExtractFeatures = csv_reader(eeg_extract_features_fn, 10, 24);
+        double[][] matlabExtractFeatures = csv_reader(eeg_extract_features_fn, 24);
 
         compare_array_with_delta(matlabExtractFeatures, extractedFeatures);
 
@@ -71,17 +71,17 @@ public class SVM_Unit_Test {
 
     @Test
     public void testBandpassFilter() throws Exception {
-        double[][] xm = csv_reader(eeg_after_ar_fn, sampleSize, NUM_EEG_CH);
+        double[][] xm = csv_reader(eeg_after_ar_fn, NUM_EEG_CH);
         double[][][] xmFiltered = sh.bandPassFilter(xm);
         String filename = "extractFeature_after_bandpass.csv";
-        double[][][] matlab = csv_reader(filename, sampleSize, NUM_EEG_CH, NUM_BAND);
+        double[][][] matlab = csv_reader(filename, NUM_EEG_CH, NUM_BAND);
         compare_array_with_delta(matlab, xmFiltered);
     }
 
     @Test
-    public void testRawToFeatures() throws Exception {
-        double[][] raw_eeg = csv_reader(eeg_raw_fn, sampleSize, NUM_EEG_CH);
-        double[][] matlabExtractedFeatures = csv_reader(eeg_extract_features_fn, 10, 24);
+    public void testRawToFeatures() throws IOException {
+        double[][] raw_eeg = csv_reader(eeg_raw_fn, NUM_EEG_CH);
+        double[][] matlabExtractedFeatures = csv_reader(eeg_extract_features_fn, 24);
 
         double[][] extractedFeatures = sh.rawToFeature(raw_eeg);
 
@@ -89,7 +89,7 @@ public class SVM_Unit_Test {
 
     }
 
-    @Test //TODO load svm model
+    @Test
     public void testLoadSVMmodel() throws Exception {
         //Load get file as inputsteam
         String fn = "svm_model_test.txt";
@@ -98,26 +98,85 @@ public class SVM_Unit_Test {
 
         //Load Model
         svm_model svmModel;
-        svmModel = svm.svm_load_model(br);
+        svm.svm_load_model(br);
 
-        //Setup Features
-        double[][] raw_eeg = csv_reader(eeg_raw_fn, sampleSize, NUM_EEG_CH);
-        double[][] feature = sh.rawToFeature(raw_eeg);
+        System.out.print("");
+    }
+
+
+    @Test
+    public void testSVMRawToPredict() throws IOException {
+
+        String eegMeditationFn = "raw_eeg_zhijie_meditation.csv";
+        String eegStressFn = "raw_eeg_zhijie_stress.csv";
+        String modelFn = "svm_model_wo_zj.txt";
+
+        InputStream is = getClass().getClassLoader().getResourceAsStream(modelFn);
+
+        //Load Model
+        svm_model svmModel;
+        svmModel = svm.svm_load_model(new BufferedReader(new InputStreamReader(is)));
+
+        //Setup Stress and Meditation Features
+        double[][] raw_eeg_stress = csv_reader(eegStressFn, NUM_EEG_CH);
+        double[][] features_stress = sh.rawToFeature(raw_eeg_stress);
+
+        double[][] raw_eeg_meditation = csv_reader(eegMeditationFn, NUM_EEG_CH);
+        double[][] features_meditation = sh.rawToFeature(raw_eeg_meditation);
+
+
+        double[] stressPredictResult = new double[features_stress.length];
+        double[] meditationPredictResult = new double[features_meditation.length];
+
+//        double[][] stressPredictResult = new double[features_stress.length][];
+//        double[][] meditationPredictResult = new double[features_meditation.length][];
 
         //Result Meditation: 0, Stress: 1
         //Setting up features for testing
-        svm_node[] node = new svm_node[feature[0].length];
+        svm_node[] node_stress;
+        svm_node[] node_meditation;
 
-        for (int i = 0; i < feature.length; i++) {
-            node = sh.featuresToSVMNode(feature[i]);
-            double[] probResult = new double[2];
-            double result = svm.svm_predict_probability(svmModel, node, probResult);
-            System.out.print("result = " + result);
-            System.out.println("\tProbResult = " + probResult[0]);
+        double[][] probResultStress = new double[features_stress.length][];
+        double[][] probResultMeditation = new double[features_meditation.length][];
+
+        double[][] probResult = new double[features_stress.length + features_meditation.length][];
+
+        double numCorrectPredict = 0;
+
+        for (int i = 0; i < features_meditation.length; i++) {
+            node_meditation = sh.featuresToSVMNode(features_meditation[i]);
+            probResult[i] = new double[2];
+
+            meditationPredictResult[i] = svm.svm_predict_probability(svmModel, node_meditation, probResult[i]);
+            if (meditationPredictResult[i] == MEDITATION_CLASS) {
+                numCorrectPredict++;
+            }
 
         }
-    }
 
+        for (int i = 0; i < features_stress.length; i++) {
+
+            node_stress = sh.featuresToSVMNode(features_stress[i]);
+            probResult[i + features_meditation.length] = new double[2];
+            stressPredictResult[i] = svm.svm_predict_probability(svmModel, node_stress, probResult[features_meditation.length + i]);
+            if (stressPredictResult[i] == STRESS_CLASS) {
+                numCorrectPredict++;
+            }
+        }
+
+        int totalFeatures = (features_stress.length + features_meditation.length);
+        double predictAccuracy = numCorrectPredict / totalFeatures * 100;
+        System.out.println("Accuracy = " + predictAccuracy + "% (" + numCorrectPredict + "/" + totalFeatures + ")");
+        System.out.println("Accuracy = " + numCorrectPredict + "/" + totalFeatures);
+
+        double[][] matlabProb = csv_read_prob("probability_test_zj.csv");
+        compare_array_with_delta(matlabProb, probResult, 0.04);
+//        for (int i =0; i<probResultMeditation.length; i++){
+//            System.out.println("Prob:" + probResultMeditation[i][0]);
+//
+//        }
+        System.out.print("");
+    }
 
     private double[][] deep_copy_2d(double[][] array) {
         double[][] copiedArray = new double[array.length][array[0].length];
@@ -131,6 +190,20 @@ public class SVM_Unit_Test {
         for (int i = 0; i < matlabArray.length; i++) {
             for (int j = 0; j < matlabArray[i].length; j++) {
                 Boolean result = Math.abs(matlabArray[i][j] - javaArray[i][j]) > DELTA;
+                if (result) {
+                    System.out.println("Error Location = i=" + i + "\tj=" + j);
+                    System.out.println("Matlab:\t" + matlabArray[i][j] + "\nJava:\t" + javaArray[i][j]);
+
+                }
+                assertFalse(result);
+            }
+        }
+    }
+
+    private void compare_array_with_delta(double[][] matlabArray, double[][] javaArray, double delta) {
+        for (int i = 0; i < matlabArray.length; i++) {
+            for (int j = 0; j < matlabArray[i].length; j++) {
+                Boolean result = Math.abs(matlabArray[i][j] - javaArray[i][j]) > delta;
                 if (result) {
                     System.out.println("Error Location = i=" + i + "\tj=" + j);
                     System.out.println("Matlab:\t" + matlabArray[i][j] + "\nJava:\t" + javaArray[i][j]);
@@ -160,65 +233,91 @@ public class SVM_Unit_Test {
 
     /***
      *
-     * @param filename
-     * @param ch
-     * @param band
-     * @return
+     * @param filename Name of file to be read
+     * @param ch 2D
+     * @param band 3D
+     * @return 3D array of data in double
      */
-    private double[][][] csv_reader(String filename, int size, int ch, int band) {
+    private double[][][] csv_reader(String filename, int ch, int band) throws IOException {
 
-        double[][][] a = new double[size][ch][band];
+        int aSize = getNumLinesInFile(filename);
+        double[][][] array = new double[aSize][ch][band];
 
-        Reader reader = null;
-        CSVReader csvReader = null;
-        try {
-            reader = new InputStreamReader(getClass().getResourceAsStream(filename));
-            csvReader = new CSVReader(reader);
-            String[] nextRecord;
-            int count;
-            int index = 0;
-            while ((nextRecord = csvReader.readNext()) != null) {
-                count = 0;
-                for (int k = 0; k < band; k++) {
-                    for (int j = 0; j < ch; j++) { //Shift the Ch first
-                        a[index][j][k] = Double.parseDouble(nextRecord[count++]);
-                    }
+        Reader reader = new InputStreamReader(getClass().getResourceAsStream(filename));
+        CSVReader csvReader = new CSVReader(reader);
+        String[] nextRecord;
+        int count;
+        int index = 0;
+        while ((nextRecord = csvReader.readNext()) != null) {
+            count = 0;
+            for (int k = 0; k < band; k++) {
+                for (int j = 0; j < ch; j++) { //Shift the Ch first
+                    array[index][j][k] = Double.parseDouble(nextRecord[count++]);
                 }
-                index++;
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+            index++;
         }
 
-        return a;
+        return array;
 
     }
 
-    private double[][] csv_reader(String filename, int size, int ch) {
+    private double[][] csv_reader(String filename, int ch) throws IOException {
 
-        double[][] new_array = new double[size][ch];
+        int aSize = getNumLinesInFile(filename);
+        double[][] new_array = new double[aSize][ch];
 
-        Reader reader = null;
-        CSVReader csvReader = null;
-        try {
-            reader = new InputStreamReader(getClass().getResourceAsStream(filename));
-            csvReader = new CSVReader(reader);
-            String[] nextRecord;
-            int count;
-            int index = 0;
-            while ((nextRecord = csvReader.readNext()) != null) {
-                count = 0;
-                for (int j = 0; j < ch; j++) {
-                    new_array[index][j] = Double.parseDouble(nextRecord[count++]);
-                }
-                index++;
+        Reader reader = new InputStreamReader(getClass().getResourceAsStream(filename));
+        CSVReader csvReader = new CSVReader(reader);
+        String[] nextRecord;
+        int count;
+        int index = 0;
+        while ((nextRecord = csvReader.readNext()) != null) {
+            count = 0;
+            for (int j = 0; j < ch; j++) {
+                new_array[index][j] = Double.parseDouble(nextRecord[count++]);
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+            index++;
         }
 
         return new_array;
 
+    }
+
+    private double[][] csv_read_prob(String filename) throws IOException {
+
+        int aSize = getNumLinesInFile(filename);
+        int num = 2;
+
+        double[][] array = new double[aSize][num];
+
+        Reader reader = new InputStreamReader(getClass().getResourceAsStream(filename));
+        CSVReader csvReader = new CSVReader(reader);
+
+        String[] nextRecord;
+        int count;
+        int index = 0;
+        while ((nextRecord = csvReader.readNext()) != null) {
+            count = 0;
+            for (int j = 0; j < num; j++) {
+                array[index][j] = Double.parseDouble(nextRecord[count++]);
+            }
+            index++;
+        }
+
+        return array;
+
+    }
+
+    private int getNumLinesInFile(String filename) throws IOException {
+        int numLines = 0;
+        Reader reader = new InputStreamReader(getClass().getResourceAsStream(filename));
+        CSVReader csvReader = new CSVReader(reader);
+        while (csvReader.readNext() != null) {
+            numLines++;
+        }
+
+        return numLines;
     }
 }
 
