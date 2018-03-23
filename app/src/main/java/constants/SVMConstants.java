@@ -4,6 +4,7 @@ public final class SVMConstants {
 
     // Bandpass Filter
     public final static double SAMPLE_RATE = 256; // Sample Frequency
+//    public final static double SAMPLE_RATE = 100; // Sample Frequency
 
     public final static double[] preFilterA = {1, -5.15782851817200, 11.5608198955593, -14.9658099132349, 12.4693538123194, -6.90189476483231, 2.44985418058679, -0.502508975737991, 0.0480142849697873};
     public final static double[] preFilterB = {0.0302684886055911, 0, -0.121073954422364, 0, 0.181610931633547, 0, -0.121073954422364, 0, 0.0302684886055911};

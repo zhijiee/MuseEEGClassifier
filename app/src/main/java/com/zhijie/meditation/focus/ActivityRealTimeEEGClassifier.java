@@ -3,7 +3,6 @@ package com.zhijie.meditation.focus;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.AssetManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.View;
@@ -12,17 +11,14 @@ import android.widget.TextView;
 
 import com.choosemuse.libmuse.Muse;
 import com.choosemuse.libmuse.MuseManagerAndroid;
+import com.github.lzyzsd.circleprogress.CircleProgress;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.List;
 
 import controllers.MuseControllers.MuseConnectionHelper;
-import libsvm.svm;
-import libsvm.svm_model;
+import controllers.SVMController.SVM_Helper;
 
-import static constants.AppConstants.SVM_MODEL;
+import static constants.AppConstants.SVM_MODEL_FN;
 import static constants.AppConstants.USE_MUSE;
 
 
@@ -38,6 +34,7 @@ public class ActivityRealTimeEEGClassifier extends Activity implements View.OnCl
 
     private Context context;
     private String name;
+    private SVM_Helper sh;
 
 
     @Override
@@ -47,38 +44,26 @@ public class ActivityRealTimeEEGClassifier extends Activity implements View.OnCl
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         context = this;
+
         // Load the Muse Library
         manager = MuseManagerAndroid.getInstance();
         manager.setContext(this);
 
-        Intent intent = getIntent();
-        name = intent.getStringExtra("name");
-
-        museConnectionHelper = new MuseConnectionHelper();
-
+        //Load SVM
+        sh = new SVM_Helper(context, SVM_MODEL_FN);
+        museConnectionHelper = new MuseConnectionHelper(sh);
 
         // Connect Muse Activity
         if (USE_MUSE) {
             Intent i = new Intent(this, ActivityConnectMuse.class);
             startActivityForResult(i, R.integer.SELECT_MUSE_REQUEST);
         } else {
-
+            init();
         }
-
-        svm_model svmModel = null;
-        try{
-            AssetManager am = getAssets();
-            BufferedReader br = new BufferedReader(new InputStreamReader(am.open(SVM_MODEL)));
-            svmModel = svm.svm_load_model(br);
-
-        }catch (IOException e){
-            e.printStackTrace();
-        }
-
 
     }
 
-    private void initUI() {
+    private void init() {
         setContentView(R.layout.activity_eeg_realtime_classifier);
 
         TextView eeg1 = findViewById(R.id.eeg1);
@@ -86,11 +71,25 @@ public class ActivityRealTimeEEGClassifier extends Activity implements View.OnCl
         TextView eeg3 = findViewById(R.id.eeg3);
         TextView eeg4 = findViewById(R.id.eeg4);
 
+        TextView hsi1 = findViewById(R.id.hsi1);
+        TextView hsi2 = findViewById(R.id.hsi2);
+        TextView hsi3 = findViewById(R.id.hsi3);
+        TextView hsi4 = findViewById(R.id.hsi4);
+
         TextView tv_muse_status = findViewById(R.id.tv_muse_status);
 
+        CircleProgress pbMeditionMeter = findViewById(R.id.pb_meditation_meter);
+        sh.setPb_meditation_meter(pbMeditionMeter);
+
         museConnectionHelper.setEEGTextView(eeg1, eeg2, eeg3, eeg4);
+        museConnectionHelper.setHSITextView(hsi1, hsi2, hsi3, hsi4);
+
         museConnectionHelper.setTv_muse_status(tv_muse_status);
         museConnectionHelper.updateGUI.run();
+
+        handler.post(sh.processEEG);
+
+
 
 
     }
@@ -119,7 +118,7 @@ public class ActivityRealTimeEEGClassifier extends Activity implements View.OnCl
                 int position = data.getIntExtra("pos", 0);
                 List<Muse> availableMuse = manager.getMuses();
                 connect_to_muse(availableMuse.get(position));
-                initUI();
+                init();
             } else {
                 finish();
             }

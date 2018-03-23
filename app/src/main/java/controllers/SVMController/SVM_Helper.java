@@ -1,6 +1,22 @@
 package controllers.SVMController;
 
 
+import android.content.Context;
+import android.content.res.AssetManager;
+import android.os.Handler;
+import android.util.Log;
+
+import com.github.lzyzsd.circleprogress.CircleProgress;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+
+import constants.JUnitTestConstants;
+import libsvm.svm;
+import libsvm.svm_model;
 import libsvm.svm_node;
 
 import static constants.SVMConstants.BPCoe;
@@ -20,9 +36,113 @@ import static constants.SVMConstants.preFilterB;
 
 public class SVM_Helper {
 
+    BlockingQueue<double[]> eegBufferQueue;
+    svm_model svmModel;
+    Context context;
+    double[][] rawEEG;
+    CircleProgress pb_meditation_meter;
+    Handler handler = new Handler();
+
+    public void setPb_meditation_meter(CircleProgress pb_meditation_meter) {
+        this.pb_meditation_meter = pb_meditation_meter;
+    }
 
     public SVM_Helper() {
+
+
     }
+
+
+    public SVM_Helper(Context context, String model) {
+
+        eegBufferQueue = new LinkedBlockingQueue<>();
+        this.context = context;
+        svmLoadModel(model);
+        rawEEG = new double[(int) SAMPLE_RATE * 2][NUM_EEG_CH];
+    }
+
+    private void svmLoadModel(String filename) {
+        try {
+            AssetManager am = context.getAssets();
+            BufferedReader br = new BufferedReader(new InputStreamReader(am.open(filename)));
+            svmModel = svm.svm_load_model(br);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public void receiveEEGPacket(double[] raw123) {
+
+        eegBufferQueue.add(raw123);
+//        Log.d("TAG", "ch0:"+ raw123[0] + "\tch1:"+ raw123[1] + "\tch2:" + raw123[2] + "\tch3:" +raw123[3]);
+//        Log.d("TAG", "size = " + eegBufferQueue.size());
+
+//        if (eegBufferQueue.size() > 255){
+//            handler.post(processEEG);
+//        }
+    }
+
+
+    //TODO Solve the issue, when eegbuffer remove, data is somehow duplicated.
+    //Constant running waiting for EEG to reach of size to process
+    public Runnable processEEG = new Runnable() {
+        @Override
+        public void run() {
+
+            if (eegBufferQueue.size() >= SAMPLE_RATE) {
+//                double[] tempEEG;
+                for (int i = (int) SAMPLE_RATE; i < SAMPLE_RATE * 2; i++) {
+                    double[] tempEEG = eegBufferQueue.remove();
+//                    try {
+//                        Thread.sleep(10);
+//                    }catch(Exception e){}
+
+//                    Log.d("TAG", "size = " + eegBufferQueue.size());
+                    Log.d("TAG", "ch0:" + tempEEG[0] + "\tch1:" + tempEEG[1] + "\tch2:" + tempEEG[2] + "\tch3:" + tempEEG[3]);
+
+                    for (int j = 0; j < rawEEG[i].length; j++) {
+                        rawEEG[i][j] = tempEEG[j];
+                    }
+//                    Log.d("processEEG", "raw:" + rawEEG[(int)i][0]);
+
+
+                }
+
+                double[][] feat = rawToFeature(rawEEG);
+
+                display(feat);
+
+                // Shift current second back to previous second the the overlap 50%
+                for (double i = 0; i < SAMPLE_RATE; i++) {
+                    rawEEG[(int) (i)] = rawEEG[(int) (i + SAMPLE_RATE)];
+
+                }
+            }
+
+            handler.postDelayed(processEEG, 100);
+        }
+    };
+
+
+    public void display(double[][] feat) {
+
+        svm_node[] node = featuresToSVMNode(feat[0]);
+        double[] prob = new double[2];
+        svm.svm_predict_probability(svmModel, node, prob);
+
+        int progress = (int) (prob[JUnitTestConstants.MEDITATION_CLASS] * 100.0);
+        Log.d("SVMHELPER", "Progress:" + prob[0]);
+        pb_meditation_meter.setProgress(progress);
+
+    }
+//    public Runnable processEEGPackets = new Runnable() {
+//        @Override
+//        public void run() {
+//
+//        }
+//    };
 
     /**
      * Convert raw eeg from muse to features for predict.

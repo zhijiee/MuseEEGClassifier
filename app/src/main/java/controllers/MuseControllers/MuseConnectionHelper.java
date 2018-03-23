@@ -26,57 +26,83 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicReference;
 
+import controllers.SVMController.SVM_Helper;
+
 
 public class MuseConnectionHelper {
 
+    private final AtomicReference<Handler> fileHandler = new AtomicReference<>();
+    private final AtomicReference<MuseFileWriter> fileWriter = new AtomicReference<>();
+    private final Handler handler = new Handler();
+    public final double[] eegBuffer = new double[6];
+    public final double[] alphaBuffer = new double[6];
+    public final double[] accelBuffer = new double[3];
+    public final double[] hsiBuffer = new double[4];
     String TAG = "MUSEHELPER";
     Muse muse;
     Context context;
-
     private TextView tv_eeg_1;
     private TextView tv_eeg_2;
     private TextView tv_eeg_3;
     private TextView tv_eeg_4;
 
+    private TextView tv_hsi_1;
+    private TextView tv_hsi_2;
+    private TextView tv_hsi_3;
+    private TextView tv_hsi_4;
+
+    public Runnable updateGUI = new Runnable() {
+        @Override
+        public void run() {
+            tv_eeg_1.setText("" + eegBuffer[0]);
+            tv_eeg_2.setText("" + eegBuffer[1]);
+            tv_eeg_3.setText("" + eegBuffer[2]);
+            tv_eeg_4.setText("" + eegBuffer[3]);
+
+            tv_hsi_1.setText("" + hsiBuffer[0]);
+            tv_hsi_2.setText("" + hsiBuffer[1]);
+            tv_hsi_3.setText("" + hsiBuffer[2]);
+            tv_hsi_4.setText("" + hsiBuffer[3]);
+            handler.postDelayed(updateGUI, 500);
+        }
+    };
     private TextView tv_muse_status;
+    private DataListener dataListener; // Receive packets from connected band
+    private ConnectionListener connectionListener; //Headband connection Status
+    private String name= "hello";
+    private String muse_status;
+    private SVM_Helper sh;
+
+    public MuseConnectionHelper(SVM_Helper sh) {
+
+        this.sh = sh;
+        //Setup Callback
+        WeakReference<MuseConnectionHelper> weakActivity =
+                new WeakReference<MuseConnectionHelper>(this);
+        connectionListener = new ConnectionListener(weakActivity); //Status of Muse Headband
+        dataListener = new DataListener(weakActivity); //Get data from EEG
+
+    }
 
     public void setTv_muse_status(TextView tv_muse_status) {
         this.tv_muse_status = tv_muse_status;
     }
 
-    private DataListener dataListener; // Receive packets from connected band
-    private ConnectionListener connectionListener; //Headband connection Status
-    private String name= "hello";
-    private final AtomicReference<Handler> fileHandler = new AtomicReference<>();
-    private final AtomicReference<MuseFileWriter> fileWriter = new AtomicReference<>();
-    private final Handler handler = new Handler();
-    private String muse_status;
+    public void setHSITextView(TextView hsi1, TextView hsi2, TextView hsi3, TextView hsi4) {
+        this.tv_hsi_1 = hsi1;
+        this.tv_hsi_2 = hsi2;
+        this.tv_hsi_3 = hsi3;
+        this.tv_hsi_4 = hsi4;
 
+    }
 
-    private final double[] eegBuffer = new double[6];
-    private final double[] alphaBuffer = new double[6];
-    private final double[] accelBuffer = new double[3];
-    private final double[] hsiBuffer = new double[4];
-
-    public void setEEGTextView(TextView eeg1, TextView eeg2, TextView eeg3, TextView eeg4){
+    public void setEEGTextView(TextView eeg1, TextView eeg2, TextView eeg3, TextView eeg4) {
         this.tv_eeg_1 = eeg1;
         this.tv_eeg_2 = eeg2;
         this.tv_eeg_3 = eeg3;
         this.tv_eeg_4 = eeg4;
 
     }
-
-    public Runnable updateGUI = new Runnable() {
-        @Override
-        public void run() {
-            tv_eeg_1.setText(""+eegBuffer[0]);
-            tv_eeg_2.setText(""+eegBuffer[1]);
-            tv_eeg_3.setText(""+eegBuffer[2]);
-            tv_eeg_4.setText(""+eegBuffer[3]);
-            handler.postDelayed(updateGUI, 1000/60);
-        }
-    };
-
 
     public double[] getEegBuffer() {
         return eegBuffer;
@@ -86,15 +112,6 @@ public class MuseConnectionHelper {
         return hsiBuffer;
     }
 
-    public MuseConnectionHelper(){
-
-        //Setup Callback
-        WeakReference<MuseConnectionHelper> weakActivity =
-                new WeakReference<MuseConnectionHelper>(this);
-        connectionListener = new ConnectionListener(weakActivity); //Status of Muse Headband
-        dataListener = new DataListener(weakActivity); //Get data from EEG
-
-    }
 
     public void setMuse(Muse muse) {
         this.muse = muse;
@@ -229,16 +246,16 @@ public class MuseConnectionHelper {
 //                android.widget.Toast.makeText
 //                        (this, "Muse Disconnected! Reconnecting!", Toast.LENGTH_SHORT).show();
 //
-//                if (muse != null) {
-//                    final Handler handler = new Handler();
-//                    handler.postDelayed(new Runnable() {
-//                        @Override
-//                        public void run() {
-//                            if (muse != null)
-//                                connect_to_muse();
-//                        }
-//                    }, 500);
-//                }
+            if (muse != null) {
+                final Handler handler = new Handler();
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (muse != null)
+                            connect_to_muse();
+                    }
+                }, 500);
+            }
 //            }
 
 
@@ -268,6 +285,7 @@ public class MuseConnectionHelper {
             case EEG:
                 assert (eegBuffer.length >= n);
                 getEegChannelValues(eegBuffer, p);
+                sh.receiveEEGPacket(eegBuffer);
                 break;
             case ACCELEROMETER:
                 assert (accelBuffer.length >= n);
