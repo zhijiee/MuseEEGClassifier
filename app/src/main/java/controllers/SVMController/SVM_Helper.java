@@ -14,11 +14,12 @@ import java.io.InputStreamReader;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import constants.JUnitTestConstants;
 import libsvm.svm;
 import libsvm.svm_model;
 import libsvm.svm_node;
+import model.SmoothEEGResults;
 
+import static constants.AppConstants.MEDITATION_CLASS;
 import static constants.SVMConstants.BPCoe;
 import static constants.SVMConstants.BPGain;
 import static constants.SVMConstants.BPNumSec;
@@ -42,6 +43,7 @@ public class SVM_Helper {
     double[][] rawEEG;
     CircleProgress pb_meditation_meter;
     Handler handler = new Handler();
+    SmoothEEGResults medSm;
 
     public void setPb_meditation_meter(CircleProgress pb_meditation_meter) {
         this.pb_meditation_meter = pb_meditation_meter;
@@ -59,6 +61,7 @@ public class SVM_Helper {
         this.context = context;
         svmLoadModel(model);
         rawEEG = new double[(int) SAMPLE_RATE * 2][NUM_EEG_CH];
+        medSm = new SmoothEEGResults();
     }
 
     private void svmLoadModel(String filename) {
@@ -73,40 +76,27 @@ public class SVM_Helper {
 
     }
 
-    public void receiveEEGPacket(double[] raw123) {
+    public void receiveEEGPacket(double[] rawEEG) {
 
-        eegBufferQueue.add(raw123);
-//        Log.d("TAG", "ch0:"+ raw123[0] + "\tch1:"+ raw123[1] + "\tch2:" + raw123[2] + "\tch3:" +raw123[3]);
-//        Log.d("TAG", "size = " + eegBufferQueue.size());
+        eegBufferQueue.add(rawEEG.clone());
 
-//        if (eegBufferQueue.size() > 255){
-//            handler.post(processEEG);
-//        }
     }
 
 
-    //TODO Solve the issue, when eegbuffer remove, data is somehow duplicated.
     //Constant running waiting for EEG to reach of size to process
     public Runnable processEEG = new Runnable() {
         @Override
         public void run() {
 
             if (eegBufferQueue.size() >= SAMPLE_RATE) {
-//                double[] tempEEG;
                 for (int i = (int) SAMPLE_RATE; i < SAMPLE_RATE * 2; i++) {
                     double[] tempEEG = eegBufferQueue.remove();
-//                    try {
-//                        Thread.sleep(10);
-//                    }catch(Exception e){}
+//                    Log.d("TAG", "ch0:" + tempEEG[0] + "\tch1:" + tempEEG[1] + "\tch2:" + tempEEG[2] + "\tch3:" + tempEEG[3]);
 
-//                    Log.d("TAG", "size = " + eegBufferQueue.size());
-                    Log.d("TAG", "ch0:" + tempEEG[0] + "\tch1:" + tempEEG[1] + "\tch2:" + tempEEG[2] + "\tch3:" + tempEEG[3]);
-
+                    // Write raw eeg to second half of the array
                     for (int j = 0; j < rawEEG[i].length; j++) {
                         rawEEG[i][j] = tempEEG[j];
                     }
-//                    Log.d("processEEG", "raw:" + rawEEG[(int)i][0]);
-
 
                 }
 
@@ -114,7 +104,7 @@ public class SVM_Helper {
 
                 display(feat);
 
-                // Shift current second back to previous second the the overlap 50%
+                // Shift the second half of the array to the first half
                 for (double i = 0; i < SAMPLE_RATE; i++) {
                     rawEEG[(int) (i)] = rawEEG[(int) (i + SAMPLE_RATE)];
 
@@ -126,23 +116,24 @@ public class SVM_Helper {
     };
 
 
+    /**
+     * Display the probability on screen
+     *
+     * @param feat Raw EEG processed into features.
+     */
     public void display(double[][] feat) {
 
         svm_node[] node = featuresToSVMNode(feat[0]);
         double[] prob = new double[2];
         svm.svm_predict_probability(svmModel, node, prob);
+        medSm.add(prob[MEDITATION_CLASS]);
 
-        int progress = (int) (prob[JUnitTestConstants.MEDITATION_CLASS] * 100.0);
-        Log.d("SVMHELPER", "Progress:" + prob[0]);
+
+        int progress = (int) (medSm.getResult() * 100.0);
+        Log.d("SVMHELPER", "Progress:" + medSm.getResult());
         pb_meditation_meter.setProgress(progress);
 
     }
-//    public Runnable processEEGPackets = new Runnable() {
-//        @Override
-//        public void run() {
-//
-//        }
-//    };
 
     /**
      * Convert raw eeg from muse to features for predict.
@@ -157,6 +148,11 @@ public class SVM_Helper {
         return extractedFeatures;
     }
 
+    /**
+     * Convert features to SVMNode
+     * @param features features from EEG
+     * @return svm_node[] array
+     */
     public svm_node[] featuresToSVMNode(double[] features) {
 
         svm_node[] svmNode = new svm_node[features.length*2];
@@ -240,9 +236,9 @@ public class SVM_Helper {
     }
 
     /**
-     * Artifact Removal
-     * Assuming window size of 512 x 4
-     * @param fInEEGData EEG window
+     * Removes artifacts from raw EEG
+     * @param fInEEGData Raw EEG
+     * @return Raw EEG with artifact removed
      */
     public double[][] artifactRemoval(double[][] fInEEGData) {
 
@@ -252,7 +248,6 @@ public class SVM_Helper {
 
         // Array of fInEEGData should be 512 x 4
         double[][] fRefData = new double[fInEEGData.length][NUM_EEG_CH];
-
         double[][] fOutEEGData = new double[fInEEGData.length][NUM_EEG_CH];
 
         int dataLength = fInEEGData.length;
