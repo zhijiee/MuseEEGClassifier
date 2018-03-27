@@ -131,11 +131,9 @@ public class ActivityRealTimeEEGClassifier extends Activity implements View.OnCl
     }
 
 //    @Override
-//    public void onBackPressed() {
-//
-//        // TODO: Prompt dialog to ask if really want to exit
-////        }
-//
-//    }
+public void onBackPressed() {
+
+//        museConnectionHelper
+}
 
 }

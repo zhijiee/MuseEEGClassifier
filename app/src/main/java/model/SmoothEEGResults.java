@@ -23,8 +23,8 @@ public class SmoothEEGResults {
 
     public double getResult() {
         double sum = 0;
-        for (double a : predict) {
-            sum += (a / (double) smoothPredict);
+        for (double prob : predict) {
+            sum += (prob / (double) smoothPredict);
         }
 
         return sum;

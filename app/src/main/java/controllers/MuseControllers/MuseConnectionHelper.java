@@ -31,6 +31,9 @@ import controllers.SVMController.SVM_Helper;
 
 public class MuseConnectionHelper {
 
+    static boolean MUSE_CONNECTED = false;
+    int reconnectCount = 0;
+
     private final AtomicReference<Handler> fileHandler = new AtomicReference<>();
     private final AtomicReference<MuseFileWriter> fileWriter = new AtomicReference<>();
     private final Handler handler = new Handler();
@@ -38,7 +41,7 @@ public class MuseConnectionHelper {
     public final double[] alphaBuffer = new double[6];
     public final double[] accelBuffer = new double[3];
     public final double[] hsiBuffer = new double[4];
-    String TAG = "MUSEHELPER";
+    String TAG = "MUSE_HELPER";
     Muse muse;
     Context context;
     private TextView tv_eeg_1;
@@ -235,19 +238,12 @@ public class MuseConnectionHelper {
 
         if (current == ConnectionState.DISCONNECTED) {
             Log.i(TAG, "Muse disconnected:" + muse.getName());
+            MUSE_CONNECTED = false;
 
-            // Save the data file once streaming has stopped.
-
-
-            // We have disconnected from the headband, so set our cached copy to null.
-//            this.muse = null;
-
-//            if (EEG_data_collection_not_finished) {
-//                android.widget.Toast.makeText
-//                        (this, "Muse Disconnected! Reconnecting!", Toast.LENGTH_SHORT).show();
-//
-            if (muse != null) {
-                final Handler handler = new Handler();
+            //Retry connection of muse for 5 times
+            if (muse != null && reconnectCount < 5) {
+                reconnectCount++;
+//                final Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
@@ -260,6 +256,8 @@ public class MuseConnectionHelper {
 
 
         } else if (current == ConnectionState.CONNECTED) {
+            reconnectCount = 0; //reset the count
+            MUSE_CONNECTED = true;
 
         }
     }

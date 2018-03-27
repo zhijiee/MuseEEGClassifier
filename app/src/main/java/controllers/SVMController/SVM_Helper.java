@@ -20,6 +20,7 @@ import libsvm.svm_node;
 import model.SmoothEEGResults;
 
 import static constants.AppConstants.MEDITATION_CLASS;
+import static constants.AppConstants.MeditationProbID;
 import static constants.SVMConstants.BPCoe;
 import static constants.SVMConstants.BPGain;
 import static constants.SVMConstants.BPNumSec;
@@ -36,6 +37,8 @@ import static constants.SVMConstants.preFilterA;
 import static constants.SVMConstants.preFilterB;
 
 public class SVM_Helper {
+
+    static String TAG = "SVM_HELPER";
 
     BlockingQueue<double[]> eegBufferQueue;
     svm_model svmModel;
@@ -78,7 +81,9 @@ public class SVM_Helper {
 
     public void receiveEEGPacket(double[] rawEEG) {
 
-        eegBufferQueue.add(rawEEG.clone());
+        double[] raw = new double[rawEEG.length];
+        System.arraycopy(rawEEG, 0, raw, 0, rawEEG.length);
+        eegBufferQueue.add(raw);
 
     }
 
@@ -90,18 +95,22 @@ public class SVM_Helper {
 
             if (eegBufferQueue.size() >= SAMPLE_RATE) {
                 for (int i = (int) SAMPLE_RATE; i < SAMPLE_RATE * 2; i++) {
-                    double[] tempEEG = eegBufferQueue.remove();
+                    double[] tempEEG = eegBufferQueue.remove().clone();
 //                    Log.d("TAG", "ch0:" + tempEEG[0] + "\tch1:" + tempEEG[1] + "\tch2:" + tempEEG[2] + "\tch3:" + tempEEG[3]);
 
                     // Write raw eeg to second half of the array
                     for (int j = 0; j < rawEEG[i].length; j++) {
                         rawEEG[i][j] = tempEEG[j];
+
                     }
-
+//                    Log.d("TAG", "ch0:" + tempEEG[0] + "\tch1:" + tempEEG[1] + "\tch2:" + tempEEG[2] + "\tch3:" + tempEEG[3]);
                 }
+                double[][] feat = rawToFeature(deep_copy_2d(rawEEG));
+                Log.d("TAG", "f1" + feat[0][0] + "\tf2" + feat[0][1] + "\tf3" + feat[0][2] + "\tf4" + feat[0][3]);
+                feat = rawToFeature(rawEEG);
+                Log.d("TAG", "f1" + feat[0][0] + "\tf2" + feat[0][1] + "\tf3" + feat[0][2] + "\tf4" + feat[0][3]);
 
-                double[][] feat = rawToFeature(rawEEG);
-
+//                Log.d(TAG, "FEAT:" + feat[0][0] + feat[0][1]);
                 display(feat);
 
                 // Shift the second half of the array to the first half
@@ -126,11 +135,13 @@ public class SVM_Helper {
         svm_node[] node = featuresToSVMNode(feat[0]);
         double[] prob = new double[2];
         svm.svm_predict_probability(svmModel, node, prob);
-        medSm.add(prob[MEDITATION_CLASS]);
+        medSm.add(prob[MeditationProbID]);
 
 
         int progress = (int) (medSm.getResult() * 100.0);
-        Log.d("SVMHELPER", "Progress:" + medSm.getResult());
+        Log.d(TAG, "Progress:" + medSm.getResult());
+        Log.d(TAG, "RAW Prog:" + prob[MEDITATION_CLASS]);
+
         pb_meditation_meter.setProgress(progress);
 
     }
@@ -142,6 +153,7 @@ public class SVM_Helper {
      * @return Extracted Features from raw EEG
      */
     public double[][] rawToFeature(double[][] rawEEG) {
+
         double[][] fEEGData = artifactRemoval(rawEEG);
         double[][] extractedFeatures = extractFeatures(fEEGData);
 
@@ -164,9 +176,10 @@ public class SVM_Helper {
             svmNode[i].index = i;
             svmNode[i].value = features[i];
 
-            svmNode[i+features.length] = new svm_node();
-            svmNode[i+features.length].index = i+len;
-            svmNode[i+features.length].value = 0;
+            //supposed to use for variance for now do nothing.
+            svmNode[i + len] = new svm_node();
+            svmNode[i + len].index = i + len;
+            svmNode[i + len].value = 0;
 
         }
 
@@ -418,4 +431,13 @@ public class SVM_Helper {
 
         return result;
     }
+
+    private double[][] deep_copy_2d(double[][] array) {
+        double[][] copiedArray = new double[array.length][array[0].length];
+        for (int i = 0; i < array.length; i++) {
+            System.arraycopy(array[i], 0, copiedArray[i], 0, array[0].length);
+        }
+        return copiedArray;
+    }
+
 }
