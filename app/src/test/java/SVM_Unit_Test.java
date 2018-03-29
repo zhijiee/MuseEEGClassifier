@@ -18,6 +18,9 @@ import static constants.JUnitTestConstants.MEDITATION_CLASS;
 import static constants.JUnitTestConstants.STRESS_CLASS;
 import static constants.SVMConstants.NUM_BAND;
 import static constants.SVMConstants.NUM_EEG_CH;
+import static constants.SVMConstants.WINDOW_SHIFT;
+import static constants.SVMConstants.WINDOW_SIZE;
+import static constants.SVMConstants.WINDOW_SIZE2;
 import static constants.SVMConstants.preFilterA;
 import static constants.SVMConstants.preFilterB;
 import static java.lang.Math.abs;
@@ -31,6 +34,146 @@ public class SVM_Unit_Test {
     private String eeg_after_ar_fn = "eeg_after_ar.csv";
     private String eeg_extract_features_fn = "ExtractFeaturesMatlab.csv";
 
+
+    @Test
+    public void testSamplingFreqSizeLargeSample() throws Exception {
+        String eegMeditationFn = "raw_eeg_zhijie_meditation.csv";
+        String eegStressFn = "raw_eeg_zhijie_stress.csv";
+        String modelFn = "svm_model_segment.txt";
+
+
+        //Load EEG
+        double[][] eeg_window = new double[WINDOW_SIZE2][NUM_EEG_CH]; //todo new test
+        double[][] med_raw = csv_reader(eegMeditationFn, NUM_EEG_CH);
+        double[][] str_raw = csv_reader(eegStressFn, NUM_EEG_CH);
+
+        //Load SVM Model
+        InputStream is = getClass().getClassLoader().getResourceAsStream(modelFn);
+        svm_model svmModel = svm.svm_load_model(new BufferedReader(new InputStreamReader(is)));
+
+        double[][] probResultStress = new double[str_raw.length][];
+        double[][] probResultMeditation = new double[med_raw.length][];
+
+        double[] stressPredictResult = new double[str_raw.length];
+        double[] meditationPredictResult = new double[med_raw.length];
+
+        int numCorrect = 0;
+        int numMedSeg = (med_raw.length - WINDOW_SHIFT) / WINDOW_SHIFT;
+        int numStrSeg = (str_raw.length - WINDOW_SHIFT) / WINDOW_SHIFT;
+
+        int totalFeat = ((med_raw.length - WINDOW_SHIFT) / (WINDOW_SHIFT)) + (str_raw.length - WINDOW_SHIFT) / WINDOW_SHIFT;
+
+        System.arraycopy(med_raw, 0, eeg_window, 0, WINDOW_SIZE); // Simulate copy to 2nd half
+        for (int i = 1; i < numMedSeg + 1; i++) {
+            System.arraycopy(med_raw, i * WINDOW_SHIFT, eeg_window, WINDOW_SHIFT, WINDOW_SHIFT); // Copy to 2nd half of array
+
+            double[][] feat = sh.rawToFeature(eeg_window);
+            svm_node[] node = sh.featuresToSVMNode(feat[0]);
+            probResultMeditation[i] = new double[2];
+            meditationPredictResult[i] = svm.svm_predict_probability(svmModel, node, probResultMeditation[i]);
+            if (meditationPredictResult[i] == MEDITATION_CLASS) numCorrect++;
+            sh.shift(eeg_window);
+            System.out.print("Med Result: " + meditationPredictResult[i]);
+            System.out.println("\tMed Probab: " + probResultMeditation[i][MEDITATION_CLASS]);
+
+        }
+
+        System.arraycopy(str_raw, 0, eeg_window, 0, WINDOW_SIZE2); // Simulate copy to 2nd half
+        for (int i = 0; i < numStrSeg - 7; i++) {
+//            System.arraycopy(str_raw, i*WINDOW_SHIFT, eeg_window, WINDOW_SHIFT , WINDOW_SHIFT); // Copy to 2nd half of array
+            System.arraycopy(str_raw, i * WINDOW_SHIFT, eeg_window, 0, WINDOW_SIZE2); //todo changed
+
+            double[][] feat = sh.rawToFeature(eeg_window);
+            svm_node[] node = sh.featuresToSVMNode(feat[0]);
+            probResultStress[i] = new double[2];
+            stressPredictResult[i] = svm.svm_predict_probability(svmModel, node, probResultStress[i]);
+            if (stressPredictResult[i] == STRESS_CLASS) numCorrect++;
+//            sh.shift(eeg_window);
+
+            System.out.print("strResult: " + stressPredictResult[i]);
+            System.out.println("\tstrProb: " + (probResultStress[i][STRESS_CLASS]) * 100);
+
+        }
+
+//        System.out.println("Med correct: " + numCorrect + "/" + ((med_raw.length- WINDOW_SHIFT)/(WINDOW_SHIFT)));
+        System.out.println("STR correct: " + numCorrect + "/" + totalFeat);
+
+
+    }
+
+    @Test
+    public void testSVMRawToPredict() throws IOException {
+
+        String eegMeditationFn = "raw_eeg_zhijie_meditation.csv";
+        String eegStressFn = "raw_eeg_zhijie_stress.csv";
+        String modelFn = "svm_model_wo_zj.txt";
+
+        InputStream is = getClass().getClassLoader().getResourceAsStream(modelFn);
+
+        //Load Model
+        svm_model svmModel;
+        svmModel = svm.svm_load_model(new BufferedReader(new InputStreamReader(is)));
+
+
+        //Setup Stress and Meditation Features
+        double[][] raw_eeg_meditation = csv_reader(eegMeditationFn, NUM_EEG_CH);
+        double[][] features_meditation = sh.rawToFeature(raw_eeg_meditation);
+
+        double[][] raw_eeg_stress = csv_reader(eegStressFn, NUM_EEG_CH);
+        double[][] features_stress = sh.rawToFeature(raw_eeg_stress);
+
+
+        //Result Meditation: 0, Stress: 1
+        //Setting up features for testing
+        double[] stressPredictResult = new double[features_stress.length];
+        double[] meditationPredictResult = new double[features_meditation.length];
+        svm_node[] node_stress;
+        svm_node[] node_meditation;
+
+        double[][] probResultStress = new double[features_stress.length][];
+        double[][] probResultMeditation = new double[features_meditation.length][];
+
+        double[][] probResult = new double[features_stress.length + features_meditation.length][];
+
+        double numCorrectPredict = 0;
+
+//        for (int i = 0; i < features_meditation.length; i++) {
+//            node_meditation = sh.featuresToSVMNode(features_meditation[i]);
+//            probResult[i] = new double[2];
+//
+//            meditationPredictResult[i] = svm.svm_predict_probability(svmModel, node_meditation, probResult[i]);
+//            if (meditationPredictResult[i] == MEDITATION_CLASS) {
+//                numCorrectPredict++;
+//            }
+//            System.out.print("result:" + meditationPredictResult[i]);
+//            System.out.println("\tpredict:" + probResult[i][STRESS_CLASS]);
+//        }
+
+        for (int i = 0; i < features_stress.length; i++) {
+
+            node_stress = sh.featuresToSVMNode(features_stress[i]);
+            probResult[i + features_meditation.length] = new double[2];
+            stressPredictResult[i] = svm.svm_predict_probability(svmModel, node_stress, probResult[features_meditation.length + i]);
+            if (stressPredictResult[i] == STRESS_CLASS) {
+                numCorrectPredict++;
+            }
+            System.out.print("result:" + stressPredictResult[i]);
+            System.out.println("\tpredict:" + probResult[features_meditation.length + i][STRESS_CLASS] * 100);
+        }
+
+        int totalFeatures = (features_stress.length + features_meditation.length);
+        double predictAccuracy = numCorrectPredict / totalFeatures * 100;
+        System.out.println("Accuracy = " + predictAccuracy + "% (" + numCorrectPredict + "/" + totalFeatures + ")");
+        System.out.println("Accuracy = " + numCorrectPredict + "/" + totalFeatures);
+
+        double[][] matlabProb = csv_read_prob("probability_test_zj.csv");
+        compare_array_with_delta(matlabProb, probResult, 0.04);
+//        for (int i =0; i<probResultMeditation.length; i++){
+//            System.out.println("Prob:" + probResultMeditation[i][0]);
+//
+//        }
+        System.out.print("");
+    }
 
     @Test
     public void testSamplingFreq_size() throws Exception {
@@ -140,79 +283,6 @@ public class SVM_Unit_Test {
     }
 
 
-    @Test
-    public void testSVMRawToPredict() throws IOException {
-
-        String eegMeditationFn = "raw_eeg_zhijie_meditation.csv";
-        String eegStressFn = "raw_eeg_zhijie_stress.csv";
-        String modelFn = "svm_model_wo_zj.txt";
-
-        InputStream is = getClass().getClassLoader().getResourceAsStream(modelFn);
-
-        //Load Model
-        svm_model svmModel;
-        svmModel = svm.svm_load_model(new BufferedReader(new InputStreamReader(is)));
-
-        //Setup Stress and Meditation Features
-        double[][] raw_eeg_stress = csv_reader(eegStressFn, NUM_EEG_CH);
-        double[][] features_stress = sh.rawToFeature(raw_eeg_stress);
-
-        double[][] raw_eeg_meditation = csv_reader(eegMeditationFn, NUM_EEG_CH);
-        double[][] features_meditation = sh.rawToFeature(raw_eeg_meditation);
-
-
-        double[] stressPredictResult = new double[features_stress.length];
-        double[] meditationPredictResult = new double[features_meditation.length];
-
-//        double[][] stressPredictResult = new double[features_stress.length][];
-//        double[][] meditationPredictResult = new double[features_meditation.length][];
-
-        //Result Meditation: 0, Stress: 1
-        //Setting up features for testing
-        svm_node[] node_stress;
-        svm_node[] node_meditation;
-
-        double[][] probResultStress = new double[features_stress.length][];
-        double[][] probResultMeditation = new double[features_meditation.length][];
-
-        double[][] probResult = new double[features_stress.length + features_meditation.length][];
-
-        double numCorrectPredict = 0;
-
-        for (int i = 0; i < features_meditation.length; i++) {
-            node_meditation = sh.featuresToSVMNode(features_meditation[i]);
-            probResult[i] = new double[2];
-
-            meditationPredictResult[i] = svm.svm_predict_probability(svmModel, node_meditation, probResult[i]);
-            if (meditationPredictResult[i] == MEDITATION_CLASS) {
-                numCorrectPredict++;
-            }
-
-        }
-
-        for (int i = 0; i < features_stress.length; i++) {
-
-            node_stress = sh.featuresToSVMNode(features_stress[i]);
-            probResult[i + features_meditation.length] = new double[2];
-            stressPredictResult[i] = svm.svm_predict_probability(svmModel, node_stress, probResult[features_meditation.length + i]);
-            if (stressPredictResult[i] == STRESS_CLASS) {
-                numCorrectPredict++;
-            }
-        }
-
-        int totalFeatures = (features_stress.length + features_meditation.length);
-        double predictAccuracy = numCorrectPredict / totalFeatures * 100;
-        System.out.println("Accuracy = " + predictAccuracy + "% (" + numCorrectPredict + "/" + totalFeatures + ")");
-        System.out.println("Accuracy = " + numCorrectPredict + "/" + totalFeatures);
-
-        double[][] matlabProb = csv_read_prob("probability_test_zj.csv");
-        compare_array_with_delta(matlabProb, probResult, 0.04);
-//        for (int i =0; i<probResultMeditation.length; i++){
-//            System.out.println("Prob:" + probResultMeditation[i][0]);
-//
-//        }
-        System.out.print("");
-    }
 
     private double[][] deep_copy_2d(double[][] array) {
         double[][] copiedArray = new double[array.length][array[0].length];

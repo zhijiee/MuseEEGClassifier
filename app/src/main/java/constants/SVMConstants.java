@@ -4,23 +4,29 @@ public final class SVMConstants {
 
     // Bandpass Filter
     public final static double SAMPLE_RATE = 256; // Sample Frequency
-//    public final static double SAMPLE_RATE = 100; // Sample Frequency
+
+    public final static double SAMPLE_RATE2 = 256; // test
+//    public final static int WINDOW_SHIFT2 = (int) (WINDOW_SIZE * (OVER_LAP /100.0)); //256
 
     public final static double[] preFilterA = {1, -5.15782851817200, 11.5608198955593, -14.9658099132349, 12.4693538123194, -6.90189476483231, 2.44985418058679, -0.502508975737991, 0.0480142849697873};
     public final static double[] preFilterB = {0.0302684886055911, 0, -0.121073954422364, 0, 0.181610931633547, 0, -0.121073954422364, 0, 0.0302684886055911};
-    public final static int NUM_EEG_CH = 4;
     public final static int[] kCompMat = {22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 48, 52};
     public final static int[] kCompMat2 = {11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 26};
     public final static double nComp = kCompMat.length;
 
 
+    public final static int NUM_EEG_CH = 4;
 
     public final static double WINDOW_LENGTH = 2;
-    public final static double overLap = 50; //percentage
+    public final static int WINDOW_SIZE = (int) (SAMPLE_RATE * WINDOW_LENGTH);
+    public final static int WINDOW_SIZE2 = (int) (SAMPLE_RATE2 * WINDOW_LENGTH);
+    public final static double OVER_LAP = 50; //percentage
+    public final static int WINDOW_SHIFT = (int) (WINDOW_SIZE * (OVER_LAP / 100.0)); //256
+
     public final static double maFeat = 1; //averaging frames
     public final static double maStep = 1; //shifting frames
 
-    public final static double[] BAND = {1, 4, 8, 12, 18, 30, 45}; //TODO theta is 3-8hz?
+    public final static double[] BAND = {1, 4, 8, 12, 18, 30, 45};
     public final static int NUM_BAND = BAND.length - 1;
     public final static int N_START_BAND = 1; //start from theta band - removing delta band which is noisy
     public static final double[][] BPCoe1 =

@@ -1,4 +1,5 @@
 package controllers.MuseControllers;
+
 import android.content.Context;
 import android.os.Environment;
 import android.os.Handler;
@@ -54,6 +55,9 @@ public class MuseConnectionHelper {
     private TextView tv_hsi_3;
     private TextView tv_hsi_4;
 
+    public String rawMedBuffer = "nothing";
+
+    private TextView rawMed;
     public Runnable updateGUI = new Runnable() {
         @Override
         public void run() {
@@ -66,6 +70,7 @@ public class MuseConnectionHelper {
             tv_hsi_2.setText("" + hsiBuffer[1]);
             tv_hsi_3.setText("" + hsiBuffer[2]);
             tv_hsi_4.setText("" + hsiBuffer[3]);
+
             handler.postDelayed(updateGUI, 500);
         }
     };
@@ -105,6 +110,11 @@ public class MuseConnectionHelper {
         this.tv_eeg_3 = eeg3;
         this.tv_eeg_4 = eeg4;
 
+    }
+
+
+    public void setRawMedBuffer(String rawMedBuffer) {
+        this.rawMedBuffer = rawMedBuffer;
     }
 
     public double[] getEegBuffer() {

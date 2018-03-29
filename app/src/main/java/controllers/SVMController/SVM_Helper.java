@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.res.AssetManager;
 import android.os.Handler;
 import android.util.Log;
+import android.widget.TextView;
 
 import com.github.lzyzsd.circleprogress.CircleProgress;
 
@@ -20,19 +21,20 @@ import libsvm.svm_node;
 import model.SmoothEEGResults;
 
 import static constants.AppConstants.MEDITATION_CLASS;
-import static constants.AppConstants.MeditationProbID;
 import static constants.SVMConstants.BPCoe;
 import static constants.SVMConstants.BPGain;
 import static constants.SVMConstants.BPNumSec;
 import static constants.SVMConstants.NUM_BAND;
 import static constants.SVMConstants.NUM_EEG_CH;
 import static constants.SVMConstants.N_START_BAND;
+import static constants.SVMConstants.OVER_LAP;
 import static constants.SVMConstants.SAMPLE_RATE;
 import static constants.SVMConstants.WINDOW_LENGTH;
+import static constants.SVMConstants.WINDOW_SHIFT;
+import static constants.SVMConstants.WINDOW_SIZE;
 import static constants.SVMConstants.kCompMat;
 import static constants.SVMConstants.kCompMat2;
 import static constants.SVMConstants.nComp;
-import static constants.SVMConstants.overLap;
 import static constants.SVMConstants.preFilterA;
 import static constants.SVMConstants.preFilterB;
 
@@ -48,6 +50,8 @@ public class SVM_Helper {
     Handler handler = new Handler();
     SmoothEEGResults medSm;
 
+    TextView rawMed;
+
     public void setPb_meditation_meter(CircleProgress pb_meditation_meter) {
         this.pb_meditation_meter = pb_meditation_meter;
     }
@@ -57,13 +61,16 @@ public class SVM_Helper {
 
     }
 
+    public void setRawMed(TextView rawMed) {
+        this.rawMed = rawMed;
+    }
 
     public SVM_Helper(Context context, String model) {
 
         eegBufferQueue = new LinkedBlockingQueue<>();
         this.context = context;
         svmLoadModel(model);
-        rawEEG = new double[(int) SAMPLE_RATE * 2][NUM_EEG_CH];
+        rawEEG = new double[WINDOW_SIZE][NUM_EEG_CH];
         medSm = new SmoothEEGResults();
     }
 
@@ -94,36 +101,41 @@ public class SVM_Helper {
         public void run() {
 
             if (eegBufferQueue.size() >= SAMPLE_RATE) {
-                for (int i = (int) SAMPLE_RATE; i < SAMPLE_RATE * 2; i++) {
-                    double[] tempEEG = eegBufferQueue.remove().clone();
-//                    Log.d("TAG", "ch0:" + tempEEG[0] + "\tch1:" + tempEEG[1] + "\tch2:" + tempEEG[2] + "\tch3:" + tempEEG[3]);
 
-                    // Write raw eeg to second half of the array
-                    for (int j = 0; j < rawEEG[i].length; j++) {
-                        rawEEG[i][j] = tempEEG[j];
+                // Write raw eeg to second half of the array
+                writeSecondHalf(rawEEG);
 
-                    }
-//                    Log.d("TAG", "ch0:" + tempEEG[0] + "\tch1:" + tempEEG[1] + "\tch2:" + tempEEG[2] + "\tch3:" + tempEEG[3]);
-                }
                 double[][] feat = rawToFeature(deep_copy_2d(rawEEG));
-                Log.d("TAG", "f1" + feat[0][0] + "\tf2" + feat[0][1] + "\tf3" + feat[0][2] + "\tf4" + feat[0][3]);
-                feat = rawToFeature(rawEEG);
-                Log.d("TAG", "f1" + feat[0][0] + "\tf2" + feat[0][1] + "\tf3" + feat[0][2] + "\tf4" + feat[0][3]);
 
-//                Log.d(TAG, "FEAT:" + feat[0][0] + feat[0][1]);
                 display(feat);
 
                 // Shift the second half of the array to the first half
-                for (double i = 0; i < SAMPLE_RATE; i++) {
-                    rawEEG[(int) (i)] = rawEEG[(int) (i + SAMPLE_RATE)];
-
-                }
+                shift(rawEEG);
             }
 
             handler.postDelayed(processEEG, 100);
         }
     };
 
+    public void writeSecondHalf(double[][] rawEEG) {
+        for (int i = (int) SAMPLE_RATE; i < WINDOW_SIZE; i++) {
+            double[] tempEEG = eegBufferQueue.remove().clone();
+
+            for (int j = 0; j < rawEEG[i].length; j++) {
+                rawEEG[i][j] = tempEEG[j];
+            }
+        }
+
+    }
+
+    // Shift the second half of the array to the first half
+    public void shift(double[][] rawEEG) {
+
+        for (int i = 0; i < WINDOW_SHIFT; i++) {
+            rawEEG[i] = rawEEG[i + WINDOW_SHIFT];
+
+        }
+    }
 
     /**
      * Display the probability on screen
@@ -135,12 +147,13 @@ public class SVM_Helper {
         svm_node[] node = featuresToSVMNode(feat[0]);
         double[] prob = new double[2];
         svm.svm_predict_probability(svmModel, node, prob);
-        medSm.add(prob[MeditationProbID]);
+        medSm.add(prob[MEDITATION_CLASS]);
 
 
         int progress = (int) (medSm.getResult() * 100.0);
-        Log.d(TAG, "Progress:" + medSm.getResult());
-        Log.d(TAG, "RAW Prog:" + prob[MEDITATION_CLASS]);
+        rawMed.setText("" + prob[MEDITATION_CLASS] * 100);
+        Log.d(TAG, "Progress:" + progress);
+        Log.d(TAG, "RAW Prog:" + prob[MEDITATION_CLASS] * 100.0);
 
         pb_meditation_meter.setProgress(progress);
 
@@ -304,7 +317,7 @@ public class SVM_Helper {
 
         int winSize = (int) Math.floor(winLen * fs); // window size = 2 * 256 = 512
 
-        int winShift = (int) Math.floor(winSize * (100 - overLap) / 100); //sample overlap 0.5 * 512 = 256
+        int winShift = (int) Math.floor(winSize * (100 - OVER_LAP) / 100); //sample overlap 0.5 * 512 = 256
 
         int numSeg = (int) Math.floor((xm.length - winSize) / winShift) + 1;
 

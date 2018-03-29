@@ -76,10 +76,14 @@ public class ActivityRealTimeEEGClassifier extends Activity implements View.OnCl
         TextView hsi3 = findViewById(R.id.hsi3);
         TextView hsi4 = findViewById(R.id.hsi4);
 
+        TextView rawMed = findViewById(R.id.rawMeditation);
+        sh.setRawMed(rawMed);
+
         TextView tv_muse_status = findViewById(R.id.tv_muse_status);
 
         CircleProgress pbMeditionMeter = findViewById(R.id.pb_meditation_meter);
         sh.setPb_meditation_meter(pbMeditionMeter);
+
 
         museConnectionHelper.setEEGTextView(eeg1, eeg2, eeg3, eeg4);
         museConnectionHelper.setHSITextView(hsi1, hsi2, hsi3, hsi4);
