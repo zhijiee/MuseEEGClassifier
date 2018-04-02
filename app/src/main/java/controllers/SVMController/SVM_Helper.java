@@ -5,9 +5,12 @@ import android.content.Context;
 import android.content.res.AssetManager;
 import android.os.Handler;
 import android.util.Log;
-import android.widget.TextView;
+import android.view.View;
 
 import com.github.lzyzsd.circleprogress.CircleProgress;
+import com.jjoe64.graphview.GraphView;
+import com.jjoe64.graphview.series.DataPoint;
+import com.jjoe64.graphview.series.LineGraphSeries;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -50,7 +53,10 @@ public class SVM_Helper {
     Handler handler = new Handler();
     SmoothEEGResults medSm;
 
-    TextView rawMed;
+    GraphView graph;
+    LineGraphSeries<DataPoint> mSeries;
+    int graphXValue = 0;
+//TextView rawMed;
 
     public void setPb_meditation_meter(CircleProgress pb_meditation_meter) {
         this.pb_meditation_meter = pb_meditation_meter;
@@ -61,9 +67,9 @@ public class SVM_Helper {
 
     }
 
-    public void setRawMed(TextView rawMed) {
-        this.rawMed = rawMed;
-    }
+//    public void setRawMed(TextView rawMed) {
+//        this.rawMed = rawMed;
+//    }
 
     public SVM_Helper(Context context, String model) {
 
@@ -83,6 +89,20 @@ public class SVM_Helper {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+    }
+
+    public void setupGraph(View graph) {
+        this.graph = (GraphView) graph;
+
+        mSeries = new LineGraphSeries<>();
+        this.graph.addSeries(mSeries);
+//        mSeries.appendData(new DataPoint(graphXValue++, 1), true, 40);
+//        mSeries.appendData(new DataPoint(graphXValue++, 0.5), true, 40);
+//        mSeries.appendData(new DataPoint(graphXValue++, 0.25), true, 40);
+//        mSeries.appendData(new DataPoint(graphXValue++, 0), true, 40);
+//        mSeries.appendData(new DataPoint(graphXValue++, 0.82), true, 40);
+
 
     }
 
@@ -151,11 +171,12 @@ public class SVM_Helper {
 
 
         int progress = (int) (medSm.getResult() * 100.0);
-        rawMed.setText("" + prob[MEDITATION_CLASS] * 100);
+//        rawMed.setText("" + prob[MEDITATION_CLASS] * 100);
         Log.d(TAG, "Progress:" + progress);
-        Log.d(TAG, "RAW Prog:" + prob[MEDITATION_CLASS] * 100.0);
+//        Log.d(TAG, "RAW Prog:" + prob[MEDITATION_CLASS] * 100.0);
 
         pb_meditation_meter.setProgress(progress);
+        mSeries.appendData(new DataPoint(graphXValue++, medSm.getResult()), true, 45);
 
     }
 
