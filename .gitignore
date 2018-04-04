@@ -37,3 +37,9 @@ local.properties
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# CSV_to_Muse
+.pyc
+.muse
+.csv
+
