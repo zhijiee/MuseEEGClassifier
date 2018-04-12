@@ -56,7 +56,6 @@ public class SVM_Helper {
     GraphView graph;
     LineGraphSeries<DataPoint> mSeries;
     int graphXValue = 0;
-//TextView rawMed;
 
     public void setPb_meditation_meter(CircleProgress pb_meditation_meter) {
         this.pb_meditation_meter = pb_meditation_meter;
@@ -67,16 +66,12 @@ public class SVM_Helper {
 
     }
 
-//    public void setRawMed(TextView rawMed) {
-//        this.rawMed = rawMed;
-//    }
-
     public SVM_Helper(Context context, String model) {
 
         eegBufferQueue = new LinkedBlockingQueue<>();
         this.context = context;
         svmLoadModel(model);
-        rawEEG = new double[WINDOW_SIZE][NUM_EEG_CH];
+        rawEEG = new double[WINDOW_SHIFT*3][NUM_EEG_CH];
         medSm = new SmoothEEGResults();
     }
 
@@ -97,12 +92,6 @@ public class SVM_Helper {
 
         mSeries = new LineGraphSeries<>();
         this.graph.addSeries(mSeries);
-//        mSeries.appendData(new DataPoint(graphXValue++, 1), true, 40);
-//        mSeries.appendData(new DataPoint(graphXValue++, 0.5), true, 40);
-//        mSeries.appendData(new DataPoint(graphXValue++, 0.25), true, 40);
-//        mSeries.appendData(new DataPoint(graphXValue++, 0), true, 40);
-//        mSeries.appendData(new DataPoint(graphXValue++, 0.82), true, 40);
-
 
     }
 
@@ -119,17 +108,24 @@ public class SVM_Helper {
     public Runnable processEEG = new Runnable() {
         @Override
         public void run() {
+            /*
+                Artifact removal causes 11 values to become zero.
+                I have tried to include a additional window so it does not end up with zeros at the back
+                but the results are still not ideal. Hence, The only way to do it is to do in 3 windows
+                with the middle window being the one to extract features from. This will allow the
+                feature extraction to match as per trained in matlab
 
+                3 Windows, middle window is the one to be extracted
+             */
             if (eegBufferQueue.size() >= SAMPLE_RATE) {
 
-                // Write raw eeg to second half of the array
-                writeSecondHalf(rawEEG);
+                writeToFirstSegment(rawEEG);
 
                 double[][] feat = rawToFeature(deep_copy_2d(rawEEG));
 
                 display(feat);
 
-                // Shift the second half of the array to the first half
+                // Shift 1st,2nd segment to 2nd,3rd respectively
                 shift(rawEEG);
             }
 
@@ -137,7 +133,8 @@ public class SVM_Helper {
         }
     };
 
-    public void writeSecondHalf(double[][] rawEEG) {
+    public void writeToFirstSegment(double[][] rawEEG) {
+
         for (int i = (int) SAMPLE_RATE; i < WINDOW_SIZE; i++) {
             double[] tempEEG = eegBufferQueue.remove().clone();
 
@@ -148,11 +145,12 @@ public class SVM_Helper {
 
     }
 
-    // Shift the second half of the array to the first half
+    // Shift 1st,2nd to 2nd,3rd
     public void shift(double[][] rawEEG) {
 
-        for (int i = 0; i < WINDOW_SHIFT; i++) {
-            rawEEG[i] = rawEEG[i + WINDOW_SHIFT];
+        //write from backwards
+        for (int i = rawEEG.length-1; i >= WINDOW_SHIFT; i--) {
+            rawEEG[i] = rawEEG[i-WINDOW_SHIFT];
 
         }
     }
@@ -164,7 +162,8 @@ public class SVM_Helper {
      */
     public void display(double[][] feat) {
 
-        svm_node[] node = featuresToSVMNode(feat[0]);
+        //Should receive 3 features which middle one is the one being processed properly
+        svm_node[] node = featuresToSVMNode(feat[1]);
         double[] prob = new double[2];
         svm.svm_predict_probability(svmModel, node, prob);
         medSm.add(prob[MEDITATION_CLASS]);

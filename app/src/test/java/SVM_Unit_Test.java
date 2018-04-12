@@ -20,7 +20,6 @@ import static constants.SVMConstants.NUM_BAND;
 import static constants.SVMConstants.NUM_EEG_CH;
 import static constants.SVMConstants.WINDOW_SHIFT;
 import static constants.SVMConstants.WINDOW_SIZE;
-import static constants.SVMConstants.WINDOW_SIZE2;
 import static constants.SVMConstants.preFilterA;
 import static constants.SVMConstants.preFilterB;
 import static java.lang.Math.abs;
@@ -43,7 +42,7 @@ public class SVM_Unit_Test {
 
 
         //Load EEG
-        double[][] eeg_window = new double[WINDOW_SIZE2][NUM_EEG_CH]; //todo new test
+        double[][] eeg_window = new double[WINDOW_SIZE][NUM_EEG_CH]; //todo new test
         double[][] med_raw = csv_reader(eegMeditationFn, NUM_EEG_CH);
         double[][] str_raw = csv_reader(eegStressFn, NUM_EEG_CH);
 
@@ -78,10 +77,10 @@ public class SVM_Unit_Test {
 
         }
 
-        System.arraycopy(str_raw, 0, eeg_window, 0, WINDOW_SIZE2); // Simulate copy to 2nd half
+        System.arraycopy(str_raw, 0, eeg_window, 0, WINDOW_SIZE); // Simulate copy to 2nd half
         for (int i = 0; i < numStrSeg - 7; i++) {
 //            System.arraycopy(str_raw, i*WINDOW_SHIFT, eeg_window, WINDOW_SHIFT , WINDOW_SHIFT); // Copy to 2nd half of array
-            System.arraycopy(str_raw, i * WINDOW_SHIFT, eeg_window, 0, WINDOW_SIZE2); //todo changed
+            System.arraycopy(str_raw, i * WINDOW_SHIFT, eeg_window, 0, WINDOW_SIZE); //todo changed
 
             double[][] feat = sh.rawToFeature(eeg_window);
             svm_node[] node = sh.featuresToSVMNode(feat[0]);

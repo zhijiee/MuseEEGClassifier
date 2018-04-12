@@ -45,26 +45,16 @@ public class MuseConnectionHelper {
     String TAG = "MUSE_HELPER";
     private Muse muse;
     private Context context;
-//    private TextView tv_eeg_1;
-//    private TextView tv_eeg_2;
-//    private TextView tv_eeg_3;
-//    private TextView tv_eeg_4;
 
     private TextView tv_hsi_1;
     private TextView tv_hsi_2;
     private TextView tv_hsi_3;
     private TextView tv_hsi_4;
 
-//    public String rawMedBuffer = "nothing";
-//    private TextView rawMed;
 
     public Runnable updateGUI = new Runnable() {
         @Override
         public void run() {
-//            tv_eeg_1.setText("" + String.format("%07.2f", eegBuffer[0]));
-//            tv_eeg_2.setText("" + String.format("%07.2f", eegBuffer[1]));
-//            tv_eeg_3.setText("" + String.format("%07.2f", eegBuffer[2]));
-//            tv_eeg_4.setText("" + String.format("%07.2f", eegBuffer[3]));
 
             tv_hsi_1.setText("" + hsiBuffer[0]);
             tv_hsi_2.setText("" + hsiBuffer[1]);
@@ -103,14 +93,6 @@ public class MuseConnectionHelper {
         this.tv_hsi_4 = hsi4;
 
     }
-
-//    public void setEEGTextView(TextView eeg1, TextView eeg2, TextView eeg3, TextView eeg4) {
-//        this.tv_eeg_1 = eeg1;
-//        this.tv_eeg_2 = eeg2;
-//        this.tv_eeg_3 = eeg3;
-//        this.tv_eeg_4 = eeg4;
-//
-//    }
 
 
     public void setMuse(Muse muse) {

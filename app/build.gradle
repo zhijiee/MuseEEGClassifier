@@ -27,10 +27,7 @@ dependencies {
     implementation files('libs/libmuse_android.jar')
     implementation files('libs/libsvm.jar')
     implementation 'com.android.support.constraint:constraint-layout:1.0.2'
-//    compile 'com.google.code.gson:gson:2.8.0'
     implementation 'com.github.lzyzsd:circleprogress:1.2.1' //Circle Progress Library
-//    compile group: 'uk.me.berndporr', name:'iirj', version: '1.0' //Butterworth filter
-//    compile group: 'org.ejml', name: 'ejml-all', version: '0.33' //Matrixs
     // Required -- JUnit 4 framework
     testImplementation 'junit:junit:4.12'
     // Optional -- Mockito framework

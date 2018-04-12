@@ -5,7 +5,6 @@ public final class SVMConstants {
     // Bandpass Filter
     public final static double SAMPLE_RATE = 256; // Sample Frequency
 
-    public final static double SAMPLE_RATE2 = 256; // test
 //    public final static int WINDOW_SHIFT2 = (int) (WINDOW_SIZE * (OVER_LAP /100.0)); //256
 
     public final static double[] preFilterA = {1, -5.15782851817200, 11.5608198955593, -14.9658099132349, 12.4693538123194, -6.90189476483231, 2.44985418058679, -0.502508975737991, 0.0480142849697873};
@@ -19,7 +18,6 @@ public final class SVMConstants {
 
     public final static double WINDOW_LENGTH = 2;
     public final static int WINDOW_SIZE = (int) (SAMPLE_RATE * WINDOW_LENGTH);
-    public final static int WINDOW_SIZE2 = (int) (SAMPLE_RATE2 * WINDOW_LENGTH);
     public final static double OVER_LAP = 50; //percentage
     public final static int WINDOW_SHIFT = (int) (WINDOW_SIZE * (OVER_LAP / 100.0)); //256
 
