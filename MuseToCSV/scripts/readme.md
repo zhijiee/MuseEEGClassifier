@@ -11,17 +11,15 @@ Requires MusePlayer to work.
 # Running the program
 
 ## main_batch_convert
-Converts all \*.Muse file in folder to output_folder/original_csv/\*.csv
+The first operation is to convert all \*.Muse file in folder to output_folder/original_csv/\*.csv
 
-Then format output_folder/original_csv/\*.csv to output_folder/\*.csv .
+The second operation is to format the original_csv into labelled CSV that can be used for training in SVM. It formats files from output_folder/original_csv/\*.csv to output_folder/\*.csv .
 ```
 ./main_batch_convert.py -i <input folder> -o <output folder>
 ```
 
-
-
 ## main_muse_to_csv
-Convert a single \*.muse file to formatted \*.csv.
+Convert a \*.muse file  into CSV, then format and label the CSV file.
 ```
 ./main_muse_to_csv.py -i <inputfile> -o <outputfile>
 ```
